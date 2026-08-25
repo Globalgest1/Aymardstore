@@ -1001,7 +1001,7 @@ export default function Header() {
                   boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
                 }}
               >
-                <span>{user ? '👤 Mon Compte Client' : '🔑 Se Connecter'}</span>
+                <span>{user ? 'Mon Compte Client' : 'Se Connecter'}</span>
               </button>
             </div>
           </div>

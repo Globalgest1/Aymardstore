@@ -127,9 +127,45 @@ export default function ProductDetailPage() {
   const [reviewPhoto, setReviewPhoto] = useState('');
   const [reviewToast, setReviewToast] = useState<string | null>(null);
 
+  // Product Sharing State & Handler
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const showToastMsg = (msg: string) => {
     setReviewToast(msg);
     setTimeout(() => setReviewToast(null), 3500);
+  };
+
+  const handleShareProduct = async () => {
+    if (!product) return;
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : `https://aymard-store.com/products/${product.slug}`;
+    const shareData = {
+      title: `${product.name_fr} | Aymard Store`,
+      text: `Découvrez ${product.name_fr} sur Aymard Store !`,
+      url: currentUrl
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          setShowShareModal(true);
+        }
+        return;
+      }
+    }
+    setShowShareModal(true);
+  };
+
+  const handleCopyProductLink = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      showToastMsg('✓ Lien du produit copié dans le presse-papier !');
+      setTimeout(() => setCopiedLink(false), 3000);
+    }
   };
 
   const handleProductReviewPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,7 +241,11 @@ export default function ProductDetailPage() {
   const [addedToast, setAddedToast] = useState(false);
   
   // Helper to format shoe/product size without 'EU'
-  const formatSizeDisplay = (s?: string) => s ? s.replace(/\s*EU\b/gi, '').trim() : '';
+  const formatSizeDisplay = (s?: any) => {
+    if (!s) return '';
+    const val = typeof s === 'object' && s !== null ? (s.size || s.name || '') : String(s);
+    return String(val).replace(/\s*EU\b/gi, '').trim();
+  };
 
   const activeLoc = useMemo(() => {
     return locations.find(l => l.id === detectedLocationId) || locations[0];
@@ -548,7 +588,7 @@ export default function ProductDetailPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'left' }}>
           <div>
             <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1.5px', display: 'block', marginBottom: '4px' }}>
-              {product.brand || 'AYMARD STORE'}
+              {(!product.brand || product.brand.toLowerCase() === 'king of caps') ? 'AYMARD STORE' : product.brand}
             </span>
 
             <h1 className="product-title-heading" style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 900, color: '#09090b', letterSpacing: '-0.3px', lineHeight: 1.25 }}>
@@ -682,12 +722,13 @@ export default function ProductDetailPage() {
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {product.sizes.map(size => {
-                    const isSelected = selectedSize === size;
+                  {product.sizes.map((sItem: any, sIdx: number) => {
+                    const sizeStr = typeof sItem === 'object' && sItem !== null ? (sItem.size || sItem.name || '') : String(sItem);
+                    const isSelected = selectedSize === sizeStr;
                     return (
                       <button
-                        key={size}
-                        onClick={() => setSelectedSize(size)}
+                        key={sizeStr || sIdx}
+                        onClick={() => setSelectedSize(sizeStr)}
                         className="product-option-btn"
                         style={{
                           minWidth: '46px',
@@ -702,7 +743,7 @@ export default function ProductDetailPage() {
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        {formatSizeDisplay(size)}
+                        {formatSizeDisplay(sizeStr)}
                       </button>
                     );
                   })}
@@ -806,6 +847,7 @@ export default function ProductDetailPage() {
               <button 
                 onClick={() => toggleFavorite(product.id)}
                 aria-label={isWished ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                title={isWished ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 style={{ 
                   width: '44px',
                   height: '44px',
@@ -817,11 +859,45 @@ export default function ProductDetailPage() {
                   justifyContent: 'center',
                   cursor: 'pointer',
                   color: isWished ? '#dc2626' : '#64748b',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
                 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={isWished ? '#dc2626' : 'none'} stroke={isWished ? '#dc2626' : 'currentColor'} strokeWidth="2.2">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </button>
+
+              {/* Share Button */}
+              <button 
+                onClick={handleShareProduct}
+                aria-label="Partager ce produit"
+                title="Partager ce produit"
+                style={{ 
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#0284c7',
+                  flexShrink: 0,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f0f9ff'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                 </svg>
               </button>
             </div>
@@ -1810,6 +1886,256 @@ export default function ProductDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Share Modal */}
+      {showShareModal && product && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={() => setShowShareModal(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.35)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              animation: 'scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 22px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: '#09090b',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.4px' }}>
+                  Partager ce produit
+                </span>
+              </div>
+              <button 
+                onClick={() => setShowShareModal(false)}
+                style={{ background: 'none', border: 'none', color: '#a1a1aa', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}
+                aria-label="Fermer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Product Quick Info Card */}
+            <div style={{ padding: '20px 22px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px',
+                borderRadius: '16px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                marginBottom: '20px'
+              }}>
+                {product.images?.[0] && (
+                  <img 
+                    src={product.images[0]} 
+                    alt={product.name_fr}
+                    style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', background: '#ffffff' }}
+                  />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#09090b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {product.name_fr}
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
+                    {priceInfo.formattedPrice}
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Channels 1-Click Grid */}
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '10px' }}>
+                Partager directement via :
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+                {/* WhatsApp */}
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Regardez ce produit sur Aymard Store :\n*${product.name_fr}* (${priceInfo.formattedPrice})\n\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    background: 'rgba(37, 211, 102, 0.1)',
+                    border: '1px solid rgba(37, 211, 102, 0.25)',
+                    color: '#15803d',
+                    textDecoration: 'none',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.53 1.961.815 2.791.815 3.18 0 5.766-2.587 5.767-5.766.001-3.18-2.585-5.767-5.767-5.767zm3.38 8.169c-.143.404-.717.74-1.01.782-.294.043-.655.086-2.146-.532-1.899-.788-3.123-2.73-3.218-2.855-.096-.126-.768-1.021-.768-1.947 0-.925.487-1.381.66-1.571.173-.19.378-.238.504-.238.126 0 .252.002.361.008.117.006.273-.044.428.328.156.372.532 1.298.578 1.393.047.095.078.207.016.333-.063.126-.094.205-.188.314-.094.11-.198.246-.282.33-.095.095-.194.198-.083.389.111.191.493.814 1.059 1.319.728.649 1.342.85 1.533.945.191.095.303.079.414-.047.111-.127.476-.554.603-.744.127-.19.254-.159.428-.095.174.063 1.109.522 1.3.617.19.095.317.143.364.222.048.079.048.46-.095.864z"/></svg>
+                  <span>WhatsApp</span>
+                </a>
+
+                {/* Telegram */}
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(`Regardez ${product.name_fr} sur Aymard Store !`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    background: 'rgba(34, 158, 217, 0.1)',
+                    border: '1px solid rgba(34, 158, 217, 0.25)',
+                    color: '#0284c7',
+                    textDecoration: 'none',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                  <span>Telegram</span>
+                </a>
+
+                {/* X (Twitter) */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Découvrez ${product.name_fr} sur Aymard Store`)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    background: 'rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                    color: '#09090b',
+                    textDecoration: 'none',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  <span>X / Twitter</span>
+                </a>
+
+                {/* Facebook */}
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    background: 'rgba(24, 119, 242, 0.1)',
+                    border: '1px solid rgba(24, 119, 242, 0.25)',
+                    color: '#1d4ed8',
+                    textDecoration: 'none',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  <span>Facebook</span>
+                </a>
+              </div>
+
+              {/* Copy Direct Link Bar */}
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '8px' }}>
+                Ou copier le lien direct :
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '14px',
+                padding: '4px 6px 4px 14px',
+                gap: '8px'
+              }}>
+                <span style={{
+                  fontSize: '12px',
+                  color: '#475569',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  flex: 1
+                }}>
+                  {typeof window !== 'undefined' ? window.location.href : `https://aymard-store.com/products/${product.slug}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyProductLink}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: copiedLink ? '#10b981' : '#09090b',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
+                  }}
+                >
+                  {copiedLink ? '✓ Copié !' : 'Copier'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

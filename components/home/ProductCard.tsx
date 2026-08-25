@@ -65,9 +65,33 @@ export default function ProductCard({ id, name, slug, price, comparePrice, image
     toggleFavorite(id);
   };
 
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const productUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/products/${slug}`;
+    const shareData = {
+      title: `${name} | Aymard Store`,
+      text: `Découvrez ${name} sur Aymard Store !`,
+      url: productUrl
+    };
+    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(productUrl);
+      alert('✓ Lien du produit copié dans le presse-papier !');
+    }
+  };
+
   const isShoe = currentProduct?.category === 'shoes';
   const showStartingFrom = isShoe;
-  const productBrand = currentProduct?.brand || 'AYMARD STORE';
+  const rawBrand = currentProduct?.brand;
+  const productBrand = (!rawBrand || rawBrand.toLowerCase() === 'king of caps') ? 'AYMARD STORE' : rawBrand;
   const hasDelivery48H = currentProduct?.delivery48H;
 
   return (
@@ -96,7 +120,7 @@ export default function ProductCard({ id, name, slug, price, comparePrice, image
           <button 
             className={`product-wishlist ${isWished ? 'wished' : ''}`} 
             onClick={handleWishlistToggle} 
-            aria-label="Add to favorites"
+            aria-label="Ajouter aux favoris"
             style={{
               position: 'absolute',
               top: '12px',
@@ -164,14 +188,60 @@ export default function ProductCard({ id, name, slug, price, comparePrice, image
         <h3 className="slider-card-name">
           <Link href={`/products/${slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>{name}</Link>
         </h3>
-        <div className="slider-card-price">
-          {showStartingFrom ? (
-            <span className="price-start-label">à partir de </span>
-          ) : null}
-          <span className="price-current">{priceInfo.formattedPrice}</span>
-          {priceInfo.formattedComparePrice && (
-            <span className="price-compare">{priceInfo.formattedComparePrice}</span>
-          )}
+        
+        {/* Price & Discreet Share Button Row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2px' }}>
+          <div className="slider-card-price" style={{ margin: 0 }}>
+            {showStartingFrom ? (
+              <span className="price-start-label">à partir de </span>
+            ) : null}
+            <span className="price-current">{priceInfo.formattedPrice}</span>
+            {priceInfo.formattedComparePrice && (
+              <span className="price-compare">{priceInfo.formattedComparePrice}</span>
+            )}
+          </div>
+
+          {/* Discreet Share Button */}
+          <button 
+            type="button"
+            onClick={handleShare}
+            aria-label="Partager ce produit"
+            title="Partager"
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '50%',
+              width: '26px',
+              height: '26px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#64748b',
+              padding: 0,
+              flexShrink: 0,
+              transition: 'all 0.2s ease',
+              marginBottom: '1px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#0284c7';
+              e.currentTarget.style.background = '#f0f9ff';
+              e.currentTarget.style.borderColor = '#bae6fd';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </button>
         </div>
       </div>
     </div>

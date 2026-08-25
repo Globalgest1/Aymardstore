@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'stockx.imgix.net' },
       { protocol: 'https', hostname: '**.imgix.net' },
       { protocol: 'https', hostname: '**.cloudinary.com' },
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'bvgngwwiuykdbgzqcieb.supabase.co' },
     ],
   },
 

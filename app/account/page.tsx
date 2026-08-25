@@ -49,17 +49,49 @@ function CustomerAccountPortal() {
     deleteProductReview,
     subscribeToMarketing,
     unsubscribeMarketing,
-    marketingSubscribers
+    marketingSubscribers,
+    _hasHydrated
   } = useAppStore();
   
   const { t } = useTranslation(language);
+  const [mounted, setMounted] = useState(false);
 
-  // Redirect to login if user is not authenticated
   useEffect(() => {
-    if (!user) {
+    setMounted(true);
+    // Instant session restoration from localStorage if state was delayed
+    if (typeof window !== 'undefined' && !user) {
+      try {
+        const raw = localStorage.getItem('aymard_user_session');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.email) {
+            useAppStore.setState({ user: parsed });
+          }
+        }
+      } catch {}
+    }
+  }, [user]);
+
+  // Redirect to login only after store hydration is confirmed and user is truly absent
+  useEffect(() => {
+    if (!mounted) return;
+    
+    // Check localStorage before taking any action
+    let hasLocalSession = false;
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('aymard_user_session');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.email) hasLocalSession = true;
+        }
+      } catch {}
+    }
+
+    if (_hasHydrated && !user && !hasLocalSession) {
       router.push('/auth/login?redirect=/account');
     }
-  }, [user, router]);
+  }, [_hasHydrated, user, mounted, router]);
 
   // Real Authenticated User Profile
   const activeUser = useMemo(() => {
@@ -223,6 +255,21 @@ function CustomerAccountPortal() {
 
   // Dark Mode Theme State
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Notifications Dropdown State
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!showNotificationsDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('#notifications-dropdown-container')) {
+        setShowNotificationsDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showNotificationsDropdown]);
 
   // Profile Edit State
   const [profileName, setProfileName] = useState(activeUser.name);
@@ -607,7 +654,7 @@ function CustomerAccountPortal() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', color: '#09090b', fontFamily: 'inherit', paddingBottom: '100px' }}>
+    <div style={{ minHeight: '100vh', background: '#fafafa', color: '#09090b', fontFamily: 'inherit', paddingBottom: '100px', overflowX: 'hidden' }}>
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -636,172 +683,349 @@ function CustomerAccountPortal() {
       {/* 1. EDITORIAL LUXURY TOP HERO: CLEAN MINIMALIST MONOCHROME + GOLD VIP */}
       {/* ========================================================================= */}
       <header style={{
-        background: isDarkMode ? '#121215' : '#ffffff',
-        borderBottom: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`,
-        padding: '40px 0 32px 0',
+        background: isDarkMode ? '#0d0d10' : '#f8fafc',
+        borderBottom: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
+        padding: '24px 0',
         transition: 'background 0.25s ease, border-color 0.25s ease'
       }}>
-        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px' }}>
           
+          {/* Main Luxury Profile Card */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '24px'
+            background: isDarkMode ? '#18181b' : '#ffffff',
+            border: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
+            borderRadius: '24px',
+            padding: '18px 20px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
           }}>
             
-            {/* Identity & Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            {/* Top Identity Row */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+              {/* Avatar Initials */}
               <div style={{
-                width: '68px',
-                height: '68px',
+                width: '52px',
+                height: '52px',
                 borderRadius: '50%',
                 background: isDarkMode ? '#27272a' : '#09090b',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '22px',
+                fontSize: '18px',
                 fontWeight: 900,
                 letterSpacing: '1px',
-                border: `2px solid ${isDarkMode ? '#3f3f46' : '#e4e4e7'}`,
+                border: isVipMember ? '2px solid #facc15' : `2px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`,
+                boxShadow: isVipMember ? '0 0 12px rgba(250, 204, 21, 0.3)' : undefined,
                 flexShrink: 0
               }}>
                 {activeUser.name ? activeUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'JA'}
               </div>
 
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: '26px', fontWeight: 900, letterSpacing: '-0.5px', margin: 0, color: isDarkMode ? '#ffffff' : '#09090b' }}>
+              {/* User Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                  <h1 style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '-0.3px', margin: 0, color: isDarkMode ? '#ffffff' : '#09090b' }}>
                     {activeUser.name}
                   </h1>
                   <span style={{
-                    background: isVipMember ? 'linear-gradient(135deg, #09090b, #18181b)' : (isDarkMode ? '#27272a' : '#f4f4f5'),
-                    color: isVipMember ? '#facc15' : (isDarkMode ? '#d4d4d8' : '#52525b'),
-                    border: isVipMember ? '1.5px solid #facc15' : `1px solid ${isDarkMode ? '#3f3f46' : '#e4e4e7'}`,
-                    fontSize: '11px',
+                    background: isVipMember ? 'linear-gradient(135deg, #09090b, #18181b)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    color: isVipMember ? '#facc15' : (isDarkMode ? '#d4d4d8' : '#475569'),
+                    border: isVipMember ? '1.5px solid #facc15' : `1px solid ${isDarkMode ? '#3f3f46' : '#cbd5e1'}`,
+                    fontSize: '9.5px',
                     fontWeight: 900,
                     textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    padding: '4px 14px',
-                    borderRadius: '20px',
-                    boxShadow: isVipMember ? '0 0 14px rgba(250, 204, 21, 0.25)' : undefined
+                    letterSpacing: '0.6px',
+                    padding: '2px 8px',
+                    borderRadius: '100px',
+                    whiteSpace: 'nowrap'
                   }}>
                     {isVipMember 
-                      ? (activeUser.isVipOverride ? '👑 MEMBRE VIP (SURCLASSÉ PAR LA BOUTIQUE)' : '★ MEMBRE VIP OFFICIEL (100+ COMMANDES)')
-                      : `MEMBRE PRIVILÈGE (${customerOrders.length}/100 COMMANDES)`
+                      ? (activeUser.isVipOverride ? 'VIP BOUTIQUE' : 'MEMBRE VIP (100+)')
+                      : `MEMBRE PRIVILÈGE (${customerOrders.length}/100)`
                     }
                   </span>
                 </div>
 
-                <p style={{ fontSize: '13px', color: isDarkMode ? '#a1a1aa' : '#71717a', margin: '4px 0 0 0' }}>
-                  {activeUser.email} · Tél : <strong style={{ color: isDarkMode ? '#ffffff' : '#09090b' }}>{activeUser.phone || OFFICIAL_WHATSAPP_NUMBER}</strong>
-                </p>
+                {/* Contact info strictly non-wrapping */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: 500 }}>Email :</span>
+                    <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', color: isDarkMode ? '#ffffff' : '#09090b' }}>{activeUser.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: 500 }}>Tél :</span>
+                    <span style={{ fontWeight: 700, color: isDarkMode ? '#ffffff' : '#09090b' }}>{activeUser.phone || OFFICIAL_WHATSAPP_NUMBER}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Quick Actions: Dark/Light Mode, Edit Profile & Logout */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-              
-              {/* Dark / Light Mode Switcher */}
+            {/* Action Buttons Row */}
+            <div id="notifications-dropdown-container" style={{
+              position: 'relative',
+              display: 'grid',
+              gridTemplateColumns: '1fr auto auto',
+              gap: '8px',
+              marginTop: '16px',
+              paddingTop: '14px',
+              borderTop: `1px solid ${isDarkMode ? '#27272a' : '#f1f5f9'}`
+            }}>
+              {/* Modifier le profil */}
               <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
+                onClick={() => setActiveTab('profile')}
                 style={{
-                  background: isDarkMode ? '#27272a' : '#f4f4f5',
-                  color: isDarkMode ? '#facc15' : '#09090b',
-                  border: `1px solid ${isDarkMode ? '#3f3f46' : '#e4e4e7'}`,
-                  padding: '10px 18px',
-                  borderRadius: '30px',
-                  fontSize: '12.5px',
+                  background: isDarkMode ? '#ffffff' : '#09090b',
+                  color: isDarkMode ? '#09090b' : '#ffffff',
+                  border: 'none',
+                  padding: '11px 16px',
+                  borderRadius: '14px',
+                  fontSize: '13px',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
                 }}
-                title="Basculer entre le mode clair et le mode sombre"
               >
-                <span>{isDarkMode ? '☀️' : '🌙'}</span>
-                <span>{isDarkMode ? 'Mode Clair' : 'Mode Sombre'}</span>
+                Modifier le profil
               </button>
 
+              {/* Notifications Button */}
               <button
-                onClick={() => setActiveTab('profile')}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNotificationsDropdown(!showNotificationsDropdown);
+                }}
                 style={{
-                  background: isDarkMode ? '#18181b' : '#ffffff',
-                  color: isDarkMode ? '#ffffff' : '#09090b',
-                  border: `1px solid ${isDarkMode ? '#3f3f46' : '#e4e4e7'}`,
-                  padding: '10px 18px',
-                  borderRadius: '30px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
+                  position: 'relative',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  background: showNotificationsDropdown ? (isDarkMode ? '#ffffff' : '#09090b') : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                  color: showNotificationsDropdown ? (isDarkMode ? '#09090b' : '#ffffff') : (isDarkMode ? '#ffffff' : '#09090b'),
+                  border: `1px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
                 }}
+                title="Mes Notifications"
               >
-                <span>✏️</span>
-                <span>Modifier le profil</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadNotifsCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 900,
+                    minWidth: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 2px',
+                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.4)'
+                  }}>
+                    {unreadNotifsCount}
+                  </span>
+                )}
               </button>
 
+              {/* Mode Sombre / Clair Icon Button */}
               <button
-                onClick={handleLogout}
+                onClick={() => setIsDarkMode(!isDarkMode)}
                 style={{
-                  background: isDarkMode ? '#27272a' : '#f4f4f5',
-                  color: isDarkMode ? '#a1a1aa' : '#71717a',
-                  border: `1px solid ${isDarkMode ? '#3f3f46' : '#e4e4e7'}`,
-                  padding: '10px 18px',
-                  borderRadius: '30px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  background: isDarkMode ? '#27272a' : '#f1f5f9',
+                  color: isDarkMode ? '#facc15' : '#09090b',
+                  border: `1px solid ${isDarkMode ? '#3f3f46' : '#e2e8f0'}`,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
                 }}
+                title={isDarkMode ? 'Passer en mode clair' : 'Passer en mode sombre'}
               >
-                Déconnexion
+                {isDarkMode ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
               </button>
+
+              {/* Dropdown Menu */}
+              {showNotificationsDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 'calc(100% + 10px)',
+                    width: '100%',
+                    maxWidth: '380px',
+                    background: isDarkMode ? '#18181b' : '#ffffff',
+                    border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`,
+                    borderRadius: '20px',
+                    boxShadow: '0 18px 45px rgba(0,0,0,0.22)',
+                    zIndex: 1000,
+                    overflow: 'hidden',
+                    animation: 'fadeIn 0.18s ease-out'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Dropdown Header */}
+                  <div style={{
+                    padding: '14px 18px',
+                    borderBottom: `1px solid ${isDarkMode ? '#27272a' : '#f1f5f9'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: isDarkMode ? '#202024' : '#fafafa'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <strong style={{ fontSize: '13px', color: isDarkMode ? '#ffffff' : '#09090b', fontWeight: 900 }}>
+                        Notifications
+                      </strong>
+                      <span style={{ fontSize: '11px', fontWeight: 800, background: isDarkMode ? '#27272a' : '#e4e4e7', color: isDarkMode ? '#a1a1aa' : '#52525b', padding: '1px 6px', borderRadius: '10px' }}>
+                        {userNotifications.length}
+                      </span>
+                    </div>
+
+                    {unreadNotifsCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => markAllNotificationsAsRead(user?.email)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#0284c7',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        Tout marquer lu
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown Notification Items */}
+                  <div style={{ maxHeight: '320px', overflowY: 'auto', padding: '8px 0' }}>
+                    {userNotifications.length === 0 ? (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: isDarkMode ? '#71717a' : '#a1a1aa', fontSize: '12px' }}>
+                        Aucune notification pour le moment.
+                      </div>
+                    ) : (
+                      userNotifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => markNotificationAsRead(notif.id)}
+                          style={{
+                            padding: '12px 18px',
+                            display: 'flex',
+                            gap: '12px',
+                            alignItems: 'flex-start',
+                            background: !notif.read ? (isDarkMode ? 'rgba(56, 189, 248, 0.06)' : 'rgba(2, 132, 199, 0.04)') : 'transparent',
+                            borderBottom: `1px solid ${isDarkMode ? '#202024' : '#f8fafc'}`,
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          {/* Unread Status Dot */}
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: !notif.read ? '#0284c7' : 'transparent',
+                            marginTop: '5px',
+                            flexShrink: 0
+                          }} />
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                              <strong style={{ fontSize: '12.5px', color: isDarkMode ? '#ffffff' : '#09090b', fontWeight: !notif.read ? 800 : 600 }}>
+                                {notif.title}
+                              </strong>
+                              <span style={{ fontSize: '10px', color: isDarkMode ? '#71717a' : '#a1a1aa', flexShrink: 0 }}>
+                                {notif.date}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '11.5px', color: isDarkMode ? '#a1a1aa' : '#52525b', margin: '2px 0 0 0', lineHeight: 1.4 }}>
+                              {notif.message}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
 
           {/* Quick Metrics Bar: 3 Refined Luxury Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '28px' }}>
+          <div className="account-metric-cards-grid">
             
             {/* Card 1: Dépenses Totales */}
-            <div style={{ background: isDarkMode ? '#18181b' : '#fafafa', padding: '18px 22px', borderRadius: '18px', border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ background: isDarkMode ? '#18181b' : '#fafafa', padding: '16px 20px', borderRadius: '18px', border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ marginBottom: '4px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: isDarkMode ? '#a1a1aa' : '#71717a', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                   Dépenses Totales
                 </span>
-                <span style={{ fontSize: '14px' }}>💳</span>
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', letterSpacing: '-0.5px' }}>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', letterSpacing: '-0.5px' }}>
                 {formatPrice(convertPrice(totalSpent, currency), currency)}
               </div>
             </div>
 
             {/* Card 2: Commandes Passées */}
-            <div style={{ background: isDarkMode ? '#18181b' : '#fafafa', padding: '18px 22px', borderRadius: '18px', border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ background: isDarkMode ? '#18181b' : '#fafafa', padding: '16px 20px', borderRadius: '18px', border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ marginBottom: '4px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: isDarkMode ? '#a1a1aa' : '#71717a', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                   Commandes Passées
                 </span>
-                <span style={{ fontSize: '14px' }}>📦</span>
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', letterSpacing: '-0.5px' }}>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', letterSpacing: '-0.5px' }}>
                 {customerOrders.length} acquisition{customerOrders.length > 1 ? 's' : ''}
               </div>
-              <span style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: 700, marginTop: '4px' }}>
-                🛰️ Suivi en Direct Connecté
+              <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700, marginTop: '2px' }}>
+                Suivi en direct connecté
               </span>
             </div>
 
             {/* Card 3: Points Fidélité VIP (Information & Direct Guidance to Codes Promo) */}
             <div style={{
               background: isDarkMode ? 'linear-gradient(135deg, #18181b, #27272a)' : 'linear-gradient(135deg, #09090b, #18181b)',
-              padding: '18px 22px',
+              padding: '16px 20px',
               borderRadius: '18px',
               border: isDarkMode ? '1px solid #3f3f46' : '1px solid #27272a',
               color: '#ffffff',
@@ -810,10 +1034,9 @@ function CustomerAccountPortal() {
               justifyContent: 'space-between',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#facc15', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>★</span>
-                  <span>Points Fidélité VIP</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#facc15', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                  Points Fidélité VIP
                 </span>
                 <button
                   type="button"
@@ -826,23 +1049,19 @@ function CustomerAccountPortal() {
                     padding: '3px 10px',
                     fontSize: '10.5px',
                     fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
+                    cursor: 'pointer'
                   }}
                   title="Découvrir comment fonctionnent vos points fidélité"
                 >
-                  <span>ℹ️</span>
-                  <span>Infos &amp; Paliers</span>
+                  Infos &amp; Paliers
                 </button>
               </div>
 
-              <div style={{ fontSize: '24px', fontWeight: 900, color: '#facc15', letterSpacing: '-0.5px', marginTop: '2px' }}>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: '#facc15', letterSpacing: '-0.5px', marginTop: '2px' }}>
                 {availableLoyaltyPoints} Pts <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 700 }}>({isVipMember ? 'Membre VIP' : 'Membre Privilège'})</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '11.5px', color: '#a1a1aa', flexWrap: 'wrap', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '11.5px', color: '#a1a1aa', flexWrap: 'wrap', gap: '8px' }}>
                 <span>Valeur : <strong style={{ color: '#ffffff' }}>~{formatPrice(convertPrice((availableLoyaltyPoints / 100) * 5, currency), currency)}</strong></span>
                 <button
                   type="button"
@@ -851,18 +1070,15 @@ function CustomerAccountPortal() {
                     background: '#facc15',
                     color: '#09090b',
                     border: 'none',
-                    borderRadius: '12px',
-                    padding: '4px 10px',
+                    borderRadius: '10px',
+                    padding: '5px 12px',
                     fontSize: '11px',
                     fontWeight: 900,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
+                    cursor: 'pointer'
                   }}
                   title="Rendez-vous dans l'onglet Codes Promo pour convertir vos points"
                 >
-                  <span>🎟️ Convertir dans Codes Promo ➔</span>
+                  Convertir en Promo ➔
                 </button>
               </div>
             </div>
@@ -875,53 +1091,50 @@ function CustomerAccountPortal() {
               background: 'linear-gradient(135deg, #09090b, #1e293b)',
               border: '2px solid #facc15',
               borderRadius: '20px',
-              padding: '18px 24px',
+              padding: '16px 20px',
               marginTop: '16px',
               color: '#ffffff',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '16px',
+              gap: '14px',
               boxShadow: '0 10px 30px rgba(250, 204, 21, 0.15)',
               animation: 'fadeIn 0.3s ease-out'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <span style={{ fontSize: '28px' }}>🎉</span>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 900, background: '#facc15', color: '#09090b', padding: '2px 8px', borderRadius: '6px' }}>
-                      CODE PROMO CRÉÉ &amp; DISPONIBLE
-                    </span>
-                    <strong style={{ fontSize: '14px', color: '#22c55e' }}>
-                      -{formatPrice(convertPrice(newlyGeneratedPromo.discountAmount, currency), currency)} de réduction immédiate
-                    </strong>
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '2px' }}>
-                    Code généré avec <strong>{newlyGeneratedPromo.pointsUsed} points</strong> : <code style={{ color: '#ffffff', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: '6px', fontSize: '14px', fontWeight: 900, letterSpacing: '1px' }}>{newlyGeneratedPromo.code}</code>
-                  </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: 900, background: '#facc15', color: '#09090b', padding: '2px 8px', borderRadius: '6px' }}>
+                    CODE PROMO DISPONIBLE
+                  </span>
+                  <strong style={{ fontSize: '13.5px', color: '#22c55e' }}>
+                    -{formatPrice(convertPrice(newlyGeneratedPromo.discountAmount, currency), currency)} immédiat
+                  </strong>
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#94a3b8', marginTop: '3px' }}>
+                  Code : <code style={{ color: '#ffffff', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: '6px', fontSize: '13.5px', fontWeight: 900, letterSpacing: '1px' }}>{newlyGeneratedPromo.code}</code>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => {
                     if (typeof navigator !== 'undefined') navigator.clipboard.writeText(newlyGeneratedPromo.code);
-                    showToast(`📋 Code ${newlyGeneratedPromo.code} copié !`);
+                    showToast(`Code ${newlyGeneratedPromo.code} copié !`);
                   }}
                   style={{
                     background: 'rgba(255,255,255,0.15)',
                     color: '#ffffff',
                     border: '1px solid rgba(255,255,255,0.3)',
-                    padding: '8px 16px',
+                    padding: '8px 14px',
                     borderRadius: '20px',
-                    fontSize: '12px',
+                    fontSize: '11.5px',
                     fontWeight: 800,
                     cursor: 'pointer'
                   }}
                 >
-                  📋 Copier le code
+                  Copier
                 </button>
 
                 <button
@@ -929,21 +1142,21 @@ function CustomerAccountPortal() {
                   onClick={() => {
                     if (typeof navigator !== 'undefined') navigator.clipboard.writeText(newlyGeneratedPromo.code);
                     setActiveTab('cart');
-                    showToast(`🛒 Code ${newlyGeneratedPromo.code} copié ! Collez-le dans votre panier.`);
+                    showToast(`Code ${newlyGeneratedPromo.code} copié ! Collez-le dans votre panier.`);
                   }}
                   style={{
                     background: '#facc15',
                     color: '#09090b',
                     border: 'none',
-                    padding: '8px 20px',
+                    padding: '8px 16px',
                     borderRadius: '20px',
-                    fontSize: '12px',
+                    fontSize: '11.5px',
                     fontWeight: 900,
                     cursor: 'pointer',
                     boxShadow: '0 4px 12px rgba(250, 204, 21, 0.3)'
                   }}
                 >
-                  🛍️ Utiliser sur mon Panier Maintenant ➔
+                  Appliquer au Panier ➔
                 </button>
               </div>
             </div>
@@ -954,27 +1167,33 @@ function CustomerAccountPortal() {
             background: isDarkMode ? '#18181b' : '#fafafa',
             border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`,
             borderRadius: '18px',
-            padding: '16px 20px',
+            padding: '14px 18px',
             marginTop: '16px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            {/* Top row: Palier counter & completion percentage */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', fontWeight: 800, color: isDarkMode ? '#ffffff' : '#09090b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>👑</span>
                 <span>Palier VIP : <strong>{customerOrders.length} / 100 commandes</strong></span>
-                {isVipMember ? (
-                  <span style={{ color: '#16a34a', fontWeight: 900 }}>(✓ Statut VIP Débloqué)</span>
-                ) : (
-                  <span style={{ color: isDarkMode ? '#a1a1aa' : '#71717a', fontWeight: 600 }}>({ordersLeftForVip} commande{ordersLeftForVip > 1 ? 's' : ''} restante{ordersLeftForVip > 1 ? 's' : ''} pour le Statut VIP automatique)</span>
+                {isVipMember && (
+                  <span style={{ color: '#16a34a', fontWeight: 900 }}>(VIP Débloqué)</span>
                 )}
               </span>
-              <span style={{ fontSize: '11.5px', fontWeight: 900, color: isVipMember ? '#d97706' : '#0284c7' }}>
+              <span style={{ fontSize: '11.5px', fontWeight: 900, color: isVipMember ? '#d97706' : '#0284c7', flexShrink: 0 }}>
                 {vipProgressPct}% complété
               </span>
             </div>
 
+            {/* Subtitle row on separate line to avoid wrapping issues */}
+            {!isVipMember && (
+              <div style={{ fontSize: '11px', color: isDarkMode ? '#a1a1aa' : '#71717a', fontWeight: 600, marginTop: '-2px' }}>
+                {ordersLeftForVip} commande{ordersLeftForVip > 1 ? 's' : ''} restante{ordersLeftForVip > 1 ? 's' : ''} pour le Statut VIP automatique
+              </div>
+            )}
+
+            {/* Progress track */}
             <div style={{ width: '100%', height: '8px', borderRadius: '10px', background: isDarkMode ? '#27272a' : '#e4e4e7', overflow: 'hidden' }}>
               <div style={{
                 width: `${vipProgressPct}%`,
@@ -997,16 +1216,14 @@ function CustomerAccountPortal() {
               color: isDarkMode ? '#e9d5ff' : '#581c87'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '20px' }}>🎁</span>
                 <h3 style={{ fontSize: '14px', fontWeight: 900, margin: 0, color: isDarkMode ? '#f5d0fe' : '#581c87', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Vos Cadeaux &amp; Privilèges Spéciaux Accordés par la Direction
+                  Vos Avantages Spéciaux
                 </h3>
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
                 {activeUser.customPerks.map((pk) => (
                   <div key={pk.id} style={{ background: isDarkMode ? '#18181b' : '#ffffff', border: `1px solid ${isDarkMode ? '#3b0764' : '#e9d5ff'}`, borderRadius: '14px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <span style={{ fontSize: '20px', flexShrink: 0 }}>{pk.icon || '🎁'}</span>
                     <div>
                       <strong style={{ fontSize: '13px', color: isDarkMode ? '#ffffff' : '#581c87', display: 'block' }}>{pk.title}</strong>
                       <p style={{ fontSize: '11.5px', color: isDarkMode ? '#c084fc' : '#7e22ce', margin: '2px 0 0 0', lineHeight: '1.4' }}>{pk.description}</p>
@@ -1030,14 +1247,44 @@ function CustomerAccountPortal() {
         padding: '36px 0 60px 0',
         transition: 'background 0.25s ease'
       }}>
-        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px' }}>
         
         <div className="account-main-grid">
           
           {/* Left Navigation Sidebar */}
-          <aside className="account-nav-sidebar" style={{ background: isDarkMode ? '#121215' : '#ffffff', borderRadius: '24px', padding: '14px', border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`, position: 'sticky', top: '20px' }}>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <aside className="account-nav-sidebar" style={{ background: isDarkMode ? '#121215' : '#ffffff', borderRadius: '24px', padding: '14px', border: `1px solid ${isDarkMode ? '#27272a' : '#e4e4e7'}`, position: 'sticky', top: '24px', boxShadow: isDarkMode ? '0 10px 30px rgba(0,0,0,0.5)' : '0 8px 30px rgba(0,0,0,0.04)' }}>
+            
+            {/* Sidebar User Mini-Header */}
+            <div style={{ padding: '8px 10px 14px 10px', borderBottom: `1px solid ${isDarkMode ? '#27272a' : '#f1f5f9'}`, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+                color: '#09090b',
+                fontWeight: 900,
+                fontSize: '13.5px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)'
+              }}>
+                {(user?.name || 'A').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: isDarkMode ? '#ffffff' : '#09090b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user?.name || 'Mon Compte'}
+                </div>
+                <div style={{ fontSize: '10.5px', color: '#ca8a04', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Membre Privilège
+                </div>
+              </div>
+            </div>
+
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               
+              {/* 1. Mes Commandes */}
               <button
                 onClick={() => setActiveTab('orders')}
                 style={{
@@ -1045,25 +1292,41 @@ function CustomerAccountPortal() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'orders' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'orders' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'orders' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'orders' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'orders' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'orders' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'orders' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>📦</span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'orders' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'orders' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+                      <path d="M3 6h18"/>
+                      <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                  </div>
                   <span>Mes Commandes</span>
                 </div>
                 <span style={{
-                  background: activeTab === 'orders' ? '#ffffff' : (isDarkMode ? '#27272a' : '#f4f4f5'),
-                  color: activeTab === 'orders' ? '#09090b' : (isDarkMode ? '#a1a1aa' : '#71717a'),
+                  background: activeTab === 'orders' ? '#ffffff' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                  color: activeTab === 'orders' ? '#09090b' : (isDarkMode ? '#a1a1aa' : '#475569'),
                   fontSize: '11px',
                   fontWeight: 900,
                   padding: '2px 8px',
@@ -1073,6 +1336,7 @@ function CustomerAccountPortal() {
                 </span>
               </button>
 
+              {/* 2. Mon Panier VIP */}
               <button
                 onClick={() => setActiveTab('cart')}
                 style={{
@@ -1080,34 +1344,53 @@ function CustomerAccountPortal() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'cart' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'cart' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'cart' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'cart' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'cart' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'cart' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'cart' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>🛍️</span>
-                  <span>Mon Panier</span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'cart' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'cart' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="8" cy="21" r="1"/>
+                      <circle cx="19" cy="21" r="1"/>
+                      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                    </svg>
+                  </div>
+                  <span>Mon Panier VIP</span>
                 </div>
-                <span style={{
-                  background: activeTab === 'cart' ? '#ffffff' : '#0284c7',
-                  color: activeTab === 'cart' ? '#09090b' : '#ffffff',
-                  fontSize: '11px',
-                  fontWeight: 900,
-                  padding: '2px 8px',
-                  borderRadius: '10px'
-                }}>
-                  {totalCartCount}
-                </span>
+                {cart.length > 0 && (
+                  <span style={{
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    padding: '2px 8px',
+                    borderRadius: '10px'
+                  }}>
+                    {cart.length}
+                  </span>
+                )}
               </button>
 
+              {/* 3. Mes Favoris */}
               <button
                 onClick={() => setActiveTab('wishlist')}
                 style={{
@@ -1115,80 +1398,144 @@ function CustomerAccountPortal() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'wishlist' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'wishlist' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'wishlist' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'wishlist' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'wishlist' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'wishlist' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'wishlist' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>❤️</span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'wishlist' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'wishlist' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    </svg>
+                  </div>
                   <span>Mes Favoris</span>
                 </div>
                 <span style={{
-                  background: activeTab === 'wishlist' ? '#ffffff' : (isDarkMode ? '#27272a' : '#f4f4f5'),
-                  color: activeTab === 'wishlist' ? '#09090b' : (isDarkMode ? '#a1a1aa' : '#71717a'),
+                  background: activeTab === 'wishlist' ? '#ffffff' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                  color: activeTab === 'wishlist' ? '#09090b' : (isDarkMode ? '#a1a1aa' : '#475569'),
                   fontSize: '11px',
                   fontWeight: 900,
                   padding: '2px 8px',
                   borderRadius: '10px'
                 }}>
-                  {favoriteProducts.length}
+                  {favorites.length}
                 </span>
               </button>
 
+              {/* 4. Adresses de Livraison */}
               <button
                 onClick={() => setActiveTab('addresses')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'addresses' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'addresses' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'addresses' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'addresses' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'addresses' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'addresses' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'addresses' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
-                <span>📍</span>
-                <span>Mes Adresses</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'addresses' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'addresses' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  </div>
+                  <span>Adresses de Livraison</span>
+                </div>
               </button>
 
+              {/* 5. Codes Promo VIP */}
               <button
                 onClick={() => setActiveTab('coupons')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'coupons' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'coupons' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'coupons' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'coupons' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'coupons' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'coupons' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'coupons' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
-                <span>🎟️</span>
-                <span>Codes Privilèges</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'coupons' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'coupons' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+                      <path d="M13 5v2"/>
+                      <path d="M13 17v2"/>
+                      <path d="M13 11v2"/>
+                    </svg>
+                  </div>
+                  <span>Codes Promo VIP</span>
+                </div>
+                {promoCodes.length > 0 && (
+                  <span style={{
+                    background: '#facc15',
+                    color: '#09090b',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    padding: '2px 8px',
+                    borderRadius: '10px'
+                  }}>
+                    {promoCodes.length}
+                  </span>
+                )}
               </button>
 
+              {/* 6. Parrainage & Affiliation */}
               <button
                 onClick={() => setActiveTab('affiliation')}
                 style={{
@@ -1196,34 +1543,52 @@ function CustomerAccountPortal() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'affiliation' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'affiliation' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'affiliation' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'affiliation' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'affiliation' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'affiliation' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'affiliation' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>🤝</span>
-                  <span>Affiliation &amp; Parrainage</span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'affiliation' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'affiliation' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </div>
+                  <span>Parrainage &amp; Affiliation</span>
                 </div>
                 <span style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  fontSize: '10px',
+                  background: 'linear-gradient(135deg, #facc15, #f59e0b)',
+                  color: '#09090b',
+                  fontSize: '9.5px',
                   fontWeight: 900,
-                  padding: '2px 7px',
-                  borderRadius: '10px'
+                  padding: '2px 6px',
+                  borderRadius: '6px'
                 }}>
                   10%
                 </span>
               </button>
 
+              {/* 7. Notifications */}
               <button
                 onClick={() => setActiveTab('notifications')}
                 style={{
@@ -1231,37 +1596,52 @@ function CustomerAccountPortal() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'notifications' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'notifications' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'notifications' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'notifications' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'notifications' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'notifications' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'notifications' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>🔔</span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'notifications' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'notifications' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                    </svg>
+                  </div>
                   <span>Notifications</span>
                 </div>
                 {unreadNotifsCount > 0 && (
                   <span style={{
                     background: '#ef4444',
                     color: '#ffffff',
-                    fontSize: '10px',
+                    fontSize: '11px',
                     fontWeight: 900,
-                    padding: '2px 7px',
-                    borderRadius: '10px',
-                    boxShadow: '0 0 8px rgba(239,68,68,0.5)'
+                    padding: '2px 8px',
+                    borderRadius: '10px'
                   }}>
                     {unreadNotifsCount}
                   </span>
                 )}
               </button>
 
+              {/* 8. Mes Avis Produits */}
               <button
                 onClick={() => setActiveTab('reviews')}
                 style={{
@@ -1269,25 +1649,39 @@ function CustomerAccountPortal() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'reviews' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'reviews' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'reviews' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'reviews' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'reviews' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'reviews' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'reviews' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>⭐</span>
-                  <span>Mes Avis &amp; Notes</span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'reviews' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'reviews' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </div>
+                  <span>Mes Avis Produits</span>
                 </div>
                 <span style={{
-                  background: activeTab === 'reviews' ? '#ffffff' : (isDarkMode ? '#27272a' : '#f4f4f5'),
-                  color: activeTab === 'reviews' ? '#09090b' : (isDarkMode ? '#a1a1aa' : '#71717a'),
+                  background: activeTab === 'reviews' ? '#ffffff' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                  color: activeTab === 'reviews' ? '#09090b' : (isDarkMode ? '#a1a1aa' : '#475569'),
                   fontSize: '11px',
                   fontWeight: 900,
                   padding: '2px 8px',
@@ -1297,30 +1691,116 @@ function CustomerAccountPortal() {
                 </span>
               </button>
 
+              {/* 9. Paramètres & Sécurité */}
               <button
                 onClick={() => setActiveTab('profile')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
                   width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: activeTab === 'profile' ? (isDarkMode ? '#27272a' : '#09090b') : 'transparent',
-                  color: activeTab === 'profile' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#52525b'),
-                  fontWeight: 800,
-                  fontSize: '13.5px',
+                  padding: '10px 12px',
+                  borderRadius: '14px',
+                  border: activeTab === 'profile' ? 'none' : `1px solid ${isDarkMode ? '#1e1e24' : '#f4f4f5'}`,
+                  background: activeTab === 'profile' ? (isDarkMode ? 'linear-gradient(135deg, #27272a 0%, #18181b 100%)' : 'linear-gradient(135deg, #09090b 0%, #1c1917 100%)') : (isDarkMode ? '#18181b' : '#fafafa'),
+                  color: activeTab === 'profile' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                  fontWeight: activeTab === 'profile' ? 800 : 600,
+                  fontSize: '13px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.18s ease',
+                  boxShadow: activeTab === 'profile' ? '0 4px 14px rgba(0,0,0,0.18)' : 'none'
                 }}
               >
-                <span>👤</span>
-                <span>Paramètres &amp; Sécurité</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: activeTab === 'profile' ? 'rgba(250, 204, 21, 0.2)' : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === 'profile' ? '#facc15' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </div>
+                  <span>Paramètres &amp; Sécurité</span>
+                </div>
               </button>
 
             </nav>
+
+            {/* Concierge Box */}
+            <div style={{
+              marginTop: '16px',
+              padding: '14px',
+              borderRadius: '16px',
+              background: isDarkMode ? 'rgba(250, 204, 21, 0.04)' : 'linear-gradient(135deg, #fefce8 0%, #fef08a 100%)',
+              border: `1px solid ${isDarkMode ? 'rgba(250, 204, 21, 0.15)' : '#fef08a'}`,
+              textAlign: 'left'
+            }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#ca8a04', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Conciergerie VIP
+              </div>
+              <div style={{ fontSize: '12px', color: '#09090b', fontWeight: 700, marginTop: '2px' }}>
+                Besoin d&apos;un conseil ?
+              </div>
+              <button
+                onClick={() => window.open('https://wa.me/33757847425', '_blank')}
+                style={{
+                  marginTop: '8px',
+                  width: '100%',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  background: '#25d366',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
+                }}
+              >
+                WhatsApp Direct 7j/7
+              </button>
+            </div>
+
+            {/* Logout Button in Sidebar */}
+            <button
+              onClick={handleLogout}
+              style={{
+                marginTop: '10px',
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: '12px',
+                background: 'transparent',
+                border: `1px solid ${isDarkMode ? '#27272a' : '#fecaca'}`,
+                color: '#ef4444',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              <span>Se déconnecter</span>
+            </button>
+
           </aside>
 
           {/* Right Main Stage */}
@@ -1331,7 +1811,7 @@ function CustomerAccountPortal() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <h2 style={{ fontSize: '24px', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', margin: 0, letterSpacing: '-0.5px' }}>
+                    <h2 style={{ fontSize: 'clamp(18px, 4.5vw, 24px)', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', margin: 0, letterSpacing: '-0.5px' }}>
                       Mes Commandes &amp; Suivi en Direct
                     </h2>
                     <span style={{
@@ -3089,6 +3569,7 @@ function CustomerAccountPortal() {
           </section>
 
         </div>
+
         </div>
 
       </main>

@@ -146,24 +146,33 @@ export default function ProductSlider({ title, products, categoryLink, maxItems 
   return (
     <section className="product-slider-section">
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 className="slider-title" style={{ margin: 0 }}>{title}</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '10px' }}>
+          <h2 className="slider-title" style={{ margin: 0, fontSize: 'clamp(15px, 4.2vw, 20px)', flex: 1, lineHeight: 1.2 }}>
+            {title}
+          </h2>
           <Link 
             href={categoryLink || '/products'} 
             style={{ 
-              fontSize: '12px', 
-              fontWeight: 700, 
+              fontSize: '11px', 
+              fontWeight: 800, 
               color: '#0284c7', 
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              padding: '4px 10px',
+              borderRadius: '20px',
               textTransform: 'uppercase', 
-              letterSpacing: '0.8px', 
+              letterSpacing: '0.6px', 
               textDecoration: 'none',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              transition: 'all 0.2s ease'
             }}
           >
-            <span>Voir tout</span>
-            <span>➔</span>
+            <span>Tout</span>
+            <span style={{ fontSize: '11px' }}>➔</span>
           </Link>
         </div>
 
@@ -220,7 +229,7 @@ export default function ProductSlider({ title, products, categoryLink, maxItems 
                   </Link>
                   
                   <div className="slider-card-info">
-                    {product.brand && (
+                    {product.brand && product.brand.toLowerCase() !== 'king of caps' && (
                       <span className="slider-card-brand">{product.brand}</span>
                     )}
 

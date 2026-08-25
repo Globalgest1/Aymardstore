@@ -524,12 +524,12 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  // Auth guard
+  // Auth guard (Waits for hydration before checking authentication)
   useEffect(() => {
-    if (mounted && (!store.user || store.user.role !== 'ADMIN')) {
-      router.push('/auth/login');
+    if (mounted && store._hasHydrated && (!store.user || store.user.role !== 'ADMIN')) {
+      router.push('/auth/login?redirect=/admin');
     }
-  }, [store.user, mounted, router]);
+  }, [store.user, store._hasHydrated, mounted, router]);
 
 
   // Aggregated Real-Time System Alerts

@@ -1,16 +1,82 @@
 'use client';
 
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppStore, getProductPrice } from '@/lib/store';
 
 export default function FAQEditorial() {
   const { blogPosts, products, detectedLocationId } = useAppStore();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   const posts = useMemo(() => {
     return (blogPosts || []).filter(p => p.published !== false);
   }, [blogPosts]);
+
+  // Auto-scroll loop when section is visible
+  useEffect(() => {
+    if (!posts || posts.length <= 1) return;
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let isVisible = false;
+    let timer: NodeJS.Timeout | null = null;
+    let direction = 1;
+    const intervalTime = 3800;
+
+    const autoScroll = () => {
+      if (isPaused || !isVisible) return;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) return;
+
+      let nextScroll = container.scrollLeft + 295 * direction;
+      if (nextScroll >= maxScroll - 5) {
+        nextScroll = maxScroll;
+        direction = -1;
+      } else if (nextScroll <= 5) {
+        nextScroll = 0;
+        direction = 1;
+      }
+
+      container.scrollTo({
+        left: nextScroll,
+        behavior: 'smooth'
+      });
+    };
+
+    const startAutoplay = () => {
+      if (timer) clearInterval(timer);
+      timer = setInterval(autoScroll, intervalTime);
+    };
+
+    const stopAutoplay = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible = entry.isIntersecting;
+          if (isVisible) {
+            startAutoplay();
+          } else {
+            stopAutoplay();
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+      stopAutoplay();
+    };
+  }, [posts, isPaused]);
 
   if (!posts || posts.length === 0) return null;
 
@@ -24,99 +90,112 @@ export default function FAQEditorial() {
   };
 
   return (
-    <section style={{ padding: '44px 0 52px 0', backgroundColor: '#ffffff', borderTop: '1px solid #f1f5f9' }}>
+    <section style={{ padding: '36px 0 48px 0', backgroundColor: '#ffffff', borderTop: '1px solid #f1f5f9' }}>
       <div className="container">
         
         {/* Sleek Minimalist Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px'
+          alignItems: 'flex-end',
+          marginBottom: '18px',
+          gap: '12px'
         }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', color: '#0f172a', padding: '3px 10px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
-              <span>📰</span> LE JOURNAL &amp; LOOKBOOKS
-            </div>
-            <h2 style={{ fontSize: 'clamp(18px, 3.5vw, 24px)', fontWeight: 900, color: '#09090b', margin: 0, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
+            {/* Clickable Badge directly to /blog */}
+            <Link 
+              href="/blog" 
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                background: '#f1f5f9', 
+                color: '#0f172a', 
+                padding: '4px 14px', 
+                borderRadius: '20px', 
+                fontSize: '11px', 
+                fontWeight: 900, 
+                textTransform: 'uppercase', 
+                letterSpacing: '1px', 
+                marginBottom: '6px',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                border: '1px solid #e2e8f0'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#0f172a';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f1f5f9';
+                e.currentTarget.style.color = '#0f172a';
+              }}
+            >
+              <span>BLOG</span>
+              <span style={{ fontSize: '11px' }}>➔</span>
+            </Link>
+
+            <h2 style={{ fontSize: 'clamp(19px, 4.5vw, 24px)', fontWeight: 900, color: '#09090b', margin: 0, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
               Conseils de Style &amp; Culture
             </h2>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link
-              href="/blog"
+          {/* Navigation Arrows Only */}
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => scroll('left')}
+              aria-label="Article précédent"
               style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#09090b',
-                background: '#f8fafc',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: '#ffffff',
                 border: '1px solid #e2e8f0',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                textDecoration: 'none',
-                display: 'inline-flex',
+                color: '#09090b',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: 900,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
               }}
             >
-              <span>Voir tout</span>
-              <span>➔</span>
-            </Link>
-
-            {/* Desktop Navigation Arrows */}
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button
-                type="button"
-                onClick={() => scroll('left')}
-                aria-label="Article précédent"
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  color: '#09090b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 900
-                }}
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                onClick={() => scroll('right')}
-                aria-label="Article suivant"
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  color: '#09090b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 900
-                }}
-              >
-                ›
-              </button>
-            </div>
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => scroll('right')}
+              aria-label="Article suivant"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                color: '#09090b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: 900,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+              }}
+            >
+              ›
+            </button>
           </div>
         </div>
 
         {/* Responsive Horizontal Touch Scroll Cards on Mobile / 3-col on Desktop */}
         <div
           ref={scrollRef}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onTouchStart={() => setIsPaused(true)}
+          onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
           style={{
             display: 'flex',
             gap: '14px',

@@ -1392,16 +1392,34 @@ interface AppState {
   // 1-Click Fast Express Buy State
   quickBuyProduct: { product: Product; size?: string; color?: string; quantity?: number } | null;
   setQuickBuyProduct: (data: { product: Product; size?: string; color?: string; quantity?: number } | null) => void;
+
+  // Hydration state
+  _hasHydrated: boolean;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      _hasHydrated: false,
+      setHasHydrated: (h) => set({ _hasHydrated: h }),
+
       language: 'fr',
       currency: 'EUR',
       cart: [],
       favorites: [],
-      user: null,
+      user: (() => {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('aymard_user_session');
+            if (raw) {
+              const u = JSON.parse(raw);
+              if (u && u.email) return u;
+            }
+          } catch {}
+        }
+        return null;
+      })(),
       orders: [],
       spentLoyaltyPoints: 0,
       pointTransactions: DEFAULT_POINT_TRANSACTIONS,
@@ -1683,34 +1701,57 @@ export const useAppStore = create<AppState>()(
           });
         }
 
+        const newUser = { 
+          email, 
+          name, 
+          role, 
+          phone: phone || state.user?.phone || existingClient?.phone || '',
+          referralCode: refCode,
+          referredBy,
+          bonusPoints: existingClient?.bonusPoints || state.user?.bonusPoints || 0,
+          spentLoyaltyPoints: existingClient?.spentLoyaltyPoints || state.user?.spentLoyaltyPoints || 0,
+          customPerks: existingClient?.customPerks || state.user?.customPerks || [],
+          referralClicks: existingClient?.referralClicks || state.user?.referralClicks || 0,
+          referralSignupsCount: existingClient?.referralSignupsCount || state.user?.referralSignupsCount || 0,
+          referralOrdersCount: existingClient?.referralOrdersCount || state.user?.referralOrdersCount || 0,
+          referralPointsEarned: existingClient?.referralPointsEarned || state.user?.referralPointsEarned || 0,
+          savedAddresses: state.user?.savedAddresses || []
+        };
+
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('aymard_user_session', JSON.stringify(newUser));
+            document.cookie = `aymard_user_session=${encodeURIComponent(JSON.stringify({ email, name, role }))}; path=/; max-age=31536000; SameSite=Lax`;
+          } catch {}
+        }
+
         return { 
           clients: nextClients,
-          user: { 
-            email, 
-            name, 
-            role, 
-            phone: phone || state.user?.phone || existingClient?.phone || '',
-            referralCode: refCode,
-            referredBy,
-            bonusPoints: existingClient?.bonusPoints || state.user?.bonusPoints || 0,
-            spentLoyaltyPoints: existingClient?.spentLoyaltyPoints || state.user?.spentLoyaltyPoints || 0,
-            customPerks: existingClient?.customPerks || state.user?.customPerks || [],
-            referralClicks: existingClient?.referralClicks || state.user?.referralClicks || 0,
-            referralSignupsCount: existingClient?.referralSignupsCount || state.user?.referralSignupsCount || 0,
-            referralOrdersCount: existingClient?.referralOrdersCount || state.user?.referralOrdersCount || 0,
-            referralPointsEarned: existingClient?.referralPointsEarned || state.user?.referralPointsEarned || 0,
-            savedAddresses: state.user?.savedAddresses || []
-          } 
+          user: newUser 
         };
       }),
-      logout: () => set({ user: null }),
+      logout: () => {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('aymard_user_session');
+            document.cookie = "aymard_user_session=; path=/; max-age=0";
+          } catch {}
+        }
+        set({ user: null });
+      },
       updateUserProfile: (updates) => set((state) => {
         if (!state.user) return {};
         const nextSpent = typeof updates.spentLoyaltyPoints === 'number'
           ? updates.spentLoyaltyPoints
           : state.spentLoyaltyPoints;
+        const nextUser = { ...state.user, ...updates, spentLoyaltyPoints: nextSpent };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('aymard_user_session', JSON.stringify(nextUser));
+          } catch {}
+        }
         return {
-          user: { ...state.user, ...updates, spentLoyaltyPoints: nextSpent },
+          user: nextUser,
           spentLoyaltyPoints: nextSpent
         };
       }),
@@ -2680,11 +2721,11 @@ export const useAppStore = create<AppState>()(
               text: welcomeText,
               time: nowTime,
               options: [
-                { label: '👟 Guide des pointures & Tailles', action: 'sizes_help' },
-                { label: '📦 Suivre ma commande', action: 'track_order' },
-                { label: '💳 Paiement en 2X, 3X, 4X', action: 'payment_plans' },
-                { label: '💎 Authenticité & Politique de Vente', action: 'authenticity' },
-                { label: '👤 Parler à un conseiller Aymard Store', action: 'human_agent' }
+                { label: 'Guide des pointures & Tailles', action: 'sizes_help' },
+                { label: 'Suivre ma commande', action: 'track_order' },
+                { label: 'Paiement en 2X, 3X, 4X sans frais', action: 'payment_plans' },
+                { label: 'Authenticité & Politique de Vente', action: 'authenticity' },
+                { label: 'Conseiller Aymard Store en direct', action: 'human_agent' }
               ]
             }
           ]
@@ -2765,12 +2806,12 @@ export const useAppStore = create<AppState>()(
           id: `msg-trans-${Date.now()}`,
           sender: 'bot',
           senderName: 'Alex (Conciergerie VIP)',
-          text: "✨ **Vous êtes maintenant en direct avec un conseiller Aymard Store.**\nUn conseiller a reçu votre notification prioritaire et vous répond directement ici.\n\nVous pouvez également échanger instantanément sur WhatsApp :",
+          text: "**Vous êtes maintenant en direct avec un conseiller Aymard Store.**\nUn conseiller a reçu votre notification prioritaire et vous répond directement ici.\n\nVous pouvez également échanger instantanément sur WhatsApp :",
           time: nowTime,
           options: [
-            { label: '📲 Continuer sur WhatsApp Direct', action: 'open_whatsapp' },
-            { label: '📦 Suivre ma commande', action: 'track_order' },
-            { label: '💳 Paiement 3X Sans Frais', action: 'payment_plans' }
+            { label: 'Continuer sur WhatsApp Direct', action: 'open_whatsapp' },
+            { label: 'Suivre ma commande', action: 'track_order' },
+            { label: 'Paiement 3X Sans Frais', action: 'payment_plans' }
           ]
         };
 
@@ -3063,8 +3104,33 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'aymard-store-storage',
-      version: 18,
+      version: 30,
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+        if (state && state.products) {
+          state.products = state.products.map(p => ({
+            ...p,
+            brand: (!p.brand || p.brand.toLowerCase() === 'king of caps') ? 'AYMARD STORE' : p.brand,
+            images: (p.images || []).map(img => img.replace(/\/products\/kingofcaps\//g, '/products/caps/'))
+          }));
+        }
+        if (state && !state.user && typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('aymard_user_session');
+            if (raw) {
+              const u = JSON.parse(raw);
+              if (u && u.email) {
+                state.user = u;
+              }
+            }
+          } catch {}
+        }
+      },
       migrate: (persistedState: any, version: number) => {
+        if (version < 30 && persistedState) {
+          // Sync with clean products and standardized sizes
+          persistedState.products = defaultProducts;
+        }
         if (version < 18 && persistedState) {
           persistedState.reviews = [];
           persistedState.abandonedCheckouts = [];
@@ -3076,44 +3142,6 @@ export const useAppStore = create<AppState>()(
           if (persistedState.homepageMedia) {
             persistedState.homepageMedia.communityPhotos = [];
           }
-          persistedState.heroSlides = [
-            {
-              id: 1,
-              image: '/france_jersey_hero.jpg',
-              leftText: 'COLLECTION OFFICIELLE',
-              promoTitle: "AYMARD STORE",
-              promoSubtitle: 'SÉLECTION VÊTEMENTS & CRÉATEURS',
-              accentColor: '#38bdf8',
-              link: '/products?category=clothing'
-            },
-            {
-              id: 2,
-              image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=1600&auto=format&fit=crop',
-              leftText: 'SNEAKERS CULTURE',
-              promoTitle: 'SÉLECTION PREMIUM',
-              promoSubtitle: '100% NEUF & AUTHENTIQUE',
-              accentColor: '#0284c7',
-              link: '/products?category=shoes'
-            },
-            {
-              id: 3,
-              image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1600&auto=format&fit=crop',
-              leftText: 'STREETWEAR EXCLUSIF',
-              promoTitle: 'NOUVEAUX DROPS',
-              promoSubtitle: 'DERNIÈRES TENDANCES',
-              accentColor: '#a855f7',
-              link: '/products?category=clothing'
-            },
-            {
-              id: 4,
-              image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop',
-              leftText: 'BOUTIQUE OFFICIELLE',
-              promoTitle: 'EXPÉDIÉ EN 24/48H',
-              promoSubtitle: 'LIVRAISON SUIVIE SUR WHATSAPP',
-              accentColor: '#10b981',
-              link: '/products'
-            }
-          ];
           persistedState.clients = (persistedState.clients || []).filter(
             (c: any) => c.email && !c.email.includes('example.com')
           );

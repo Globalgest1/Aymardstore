@@ -4,9 +4,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppStore, getProductPrice } from '@/lib/store';
+import { useThemeMode } from '@/lib/useThemeMode';
 import { Product } from '@/lib/products-data';
 
 export default function BlogPostDetailPage() {
+  const isDarkMode = useThemeMode();
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
@@ -46,11 +48,11 @@ export default function BlogPostDetailPage() {
 
   if (!post) {
     return (
-      <div style={{ minHeight: '80vh', background: '#09090b', color: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+      <div style={{ minHeight: '80vh', background: isDarkMode ? '#09090b' : '#f8fafc', color: isDarkMode ? '#ffffff' : '#09090b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
         <span style={{ fontSize: '56px', marginBottom: '16px' }}>📰</span>
         <h1 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '8px' }}>Article introuvable</h1>
-        <p style={{ color: '#a1a1aa', fontSize: '14px', marginBottom: '24px' }}>Cet article n&apos;existe pas ou a été déplacé.</p>
-        <Link href="/blog" style={{ background: '#ffffff', color: '#09090b', padding: '12px 28px', borderRadius: '30px', fontWeight: 800, textDecoration: 'none', fontSize: '13px' }}>
+        <p style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: '14px', marginBottom: '24px' }}>Cet article n&apos;existe pas ou a été déplacé.</p>
+        <Link href="/blog" style={{ background: isDarkMode ? '#ffffff' : '#09090b', color: isDarkMode ? '#09090b' : '#ffffff', padding: '12px 28px', borderRadius: '30px', fontWeight: 800, textDecoration: 'none', fontSize: '13px' }}>
           Retour au Journal Aymard Store
         </Link>
       </div>
@@ -87,7 +89,7 @@ export default function BlogPostDetailPage() {
           <h2 key={index} style={{
             fontSize: 'clamp(20px, 3.5vw, 24px)',
             fontWeight: 900,
-            color: '#ffffff',
+            color: isDarkMode ? '#ffffff' : '#09090b',
             marginTop: '36px',
             marginBottom: '14px',
             lineHeight: 1.3
@@ -102,7 +104,7 @@ export default function BlogPostDetailPage() {
           <h3 key={index} style={{
             fontSize: 'clamp(17px, 3vw, 19px)',
             fontWeight: 800,
-            color: '#38bdf8',
+            color: isDarkMode ? '#38bdf8' : '#0284c7',
             marginTop: '28px',
             marginBottom: '12px',
             lineHeight: 1.3
@@ -117,10 +119,10 @@ export default function BlogPostDetailPage() {
           <blockquote key={index} style={{
             margin: '24px 0',
             padding: '16px 20px',
-            background: 'rgba(56, 189, 248, 0.05)',
-            borderLeft: '4px solid #38bdf8',
+            background: isDarkMode ? 'rgba(56, 189, 248, 0.05)' : '#f0f9ff',
+            borderLeft: `4px solid ${isDarkMode ? '#38bdf8' : '#0284c7'}`,
             borderRadius: '0 16px 16px 0',
-            color: '#e2e8f0',
+            color: isDarkMode ? '#e2e8f0' : '#1e293b',
             fontStyle: 'italic',
             fontSize: '14.5px',
             lineHeight: 1.6
@@ -133,7 +135,7 @@ export default function BlogPostDetailPage() {
       if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
         return (
           <li key={index} style={{
-            color: '#d4d4d8',
+            color: isDarkMode ? '#d4d4d8' : '#334155',
             fontSize: '15px',
             lineHeight: 1.7,
             marginLeft: '20px',
@@ -150,12 +152,12 @@ export default function BlogPostDetailPage() {
             display: 'flex',
             alignItems: 'flex-start',
             gap: '10px',
-            color: '#d4d4d8',
+            color: isDarkMode ? '#d4d4d8' : '#334155',
             fontSize: '15px',
             lineHeight: 1.7,
             marginBottom: '10px'
           }}>
-            <span style={{ background: '#27272a', color: '#facc15', fontSize: '11px', fontWeight: 900, width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
+            <span style={{ background: isDarkMode ? '#27272a' : '#e2e8f0', color: isDarkMode ? '#facc15' : '#854d0e', fontSize: '11px', fontWeight: 900, width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
               {trimmed.slice(0, 1)}
             </span>
             <span>{trimmed.slice(3)}</span>
@@ -165,7 +167,7 @@ export default function BlogPostDetailPage() {
 
       if (trimmed === '---') {
         return (
-          <hr key={index} style={{ border: 'none', borderTop: '1px solid #27272a', margin: '32px 0' }} />
+          <hr key={index} style={{ border: 'none', borderTop: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`, margin: '32px 0' }} />
         );
       }
 
@@ -175,7 +177,7 @@ export default function BlogPostDetailPage() {
 
       return (
         <p key={index} style={{
-          color: '#d4d4d8',
+          color: isDarkMode ? '#d4d4d8' : '#334155',
           fontSize: '15.5px',
           lineHeight: 1.75,
           marginBottom: '14px'
@@ -187,7 +189,7 @@ export default function BlogPostDetailPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#f4f4f5', paddingBottom: '90px' }}>
+    <div style={{ minHeight: '100vh', background: isDarkMode ? '#09090b' : '#f8fafc', color: isDarkMode ? '#f4f4f5' : '#0f172a', paddingBottom: '90px', transition: 'background-color 0.2s ease, color 0.2s ease' }}>
 
       {/* Toast Notification */}
       {toastMessage && (
@@ -195,12 +197,12 @@ export default function BlogPostDetailPage() {
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          background: '#09090b',
-          border: '1px solid #38bdf8',
-          color: '#ffffff',
+          background: isDarkMode ? '#09090b' : '#ffffff',
+          border: `1px solid ${isDarkMode ? '#38bdf8' : '#0284c7'}`,
+          color: isDarkMode ? '#ffffff' : '#09090b',
           padding: '12px 20px',
           borderRadius: '16px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
           fontSize: '13px',
           fontWeight: 800,
           zIndex: 99999,
@@ -213,39 +215,39 @@ export default function BlogPostDetailPage() {
       )}
 
       {/* 1. Breadcrumb */}
-      <nav style={{ maxWidth: '840px', margin: '0 auto', padding: '24px 16px 12px 16px', fontSize: '12px', color: '#71717a' }}>
-        <Link href="/" style={{ color: '#a1a1aa', textDecoration: 'none' }}>Accueil</Link>
+      <nav style={{ maxWidth: '840px', margin: '0 auto', padding: '24px 16px 12px 16px', fontSize: '12px', color: isDarkMode ? '#71717a' : '#64748b' }}>
+        <Link href="/" style={{ color: isDarkMode ? '#a1a1aa' : '#475569', textDecoration: 'none' }}>Accueil</Link>
         <span style={{ margin: '0 8px' }}>/</span>
-        <Link href="/blog" style={{ color: '#a1a1aa', textDecoration: 'none' }}>Le Journal</Link>
+        <Link href="/blog" style={{ color: isDarkMode ? '#a1a1aa' : '#475569', textDecoration: 'none' }}>Le Journal</Link>
         <span style={{ margin: '0 8px' }}>/</span>
-        <span style={{ color: '#38bdf8', fontWeight: 700 }}>{post.category}</span>
+        <span style={{ color: isDarkMode ? '#38bdf8' : '#0284c7', fontWeight: 700 }}>{post.category}</span>
       </nav>
 
       {/* 2. Article Header */}
       <header style={{ maxWidth: '840px', margin: '0 auto', padding: '12px 16px 24px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
           <span style={{
-            background: 'rgba(56, 189, 248, 0.12)',
-            color: '#38bdf8',
+            background: isDarkMode ? 'rgba(56, 189, 248, 0.12)' : 'rgba(2, 132, 199, 0.08)',
+            color: isDarkMode ? '#38bdf8' : '#0284c7',
             fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase',
             letterSpacing: '1px',
             padding: '4px 12px',
             borderRadius: '16px',
-            border: '1px solid rgba(56, 189, 248, 0.3)'
+            border: `1px solid ${isDarkMode ? 'rgba(56, 189, 248, 0.3)' : 'rgba(2, 132, 199, 0.25)'}`
           }}>
             {post.category}
           </span>
-          <span style={{ color: '#71717a', fontSize: '12px' }}>⏱️ {post.readTime}</span>
-          <span style={{ color: '#71717a', fontSize: '12px' }}>• {post.publishedAt}</span>
+          <span style={{ color: isDarkMode ? '#71717a' : '#64748b', fontSize: '12px' }}>⏱️ {post.readTime}</span>
+          <span style={{ color: isDarkMode ? '#71717a' : '#64748b', fontSize: '12px' }}>• {post.publishedAt}</span>
         </div>
 
         <h1 style={{
           fontSize: 'clamp(24px, 5vw, 38px)',
           fontWeight: 900,
           letterSpacing: '-0.5px',
-          color: '#ffffff',
+          color: isDarkMode ? '#ffffff' : '#09090b',
           lineHeight: 1.2,
           margin: '0 0 16px 0'
         }}>
@@ -254,7 +256,7 @@ export default function BlogPostDetailPage() {
 
         <p style={{
           fontSize: 'clamp(14px, 2.5vw, 16.5px)',
-          color: '#a1a1aa',
+          color: isDarkMode ? '#a1a1aa' : '#64748b',
           lineHeight: 1.6,
           margin: '0 0 24px 0'
         }}>
@@ -266,8 +268,8 @@ export default function BlogPostDetailPage() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderTop: '1px solid #27272a',
-          borderBottom: '1px solid #27272a',
+          borderTop: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
+          borderBottom: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
           padding: '14px 0',
           flexWrap: 'wrap',
           gap: '12px'
@@ -281,8 +283,8 @@ export default function BlogPostDetailPage() {
               />
             )}
             <div>
-              <strong style={{ fontSize: '13px', color: '#ffffff', display: 'block' }}>{post.author.name}</strong>
-              <span style={{ fontSize: '11px', color: '#71717a' }}>{post.author.role}</span>
+              <strong style={{ fontSize: '13px', color: isDarkMode ? '#ffffff' : '#09090b', display: 'block' }}>{post.author.name}</strong>
+              <span style={{ fontSize: '11px', color: isDarkMode ? '#71717a' : '#64748b' }}>{post.author.role}</span>
             </div>
           </div>
 
@@ -313,14 +315,15 @@ export default function BlogPostDetailPage() {
             <button
               onClick={handleCopyLink}
               style={{
-                background: '#18181b',
-                color: '#d4d4d8',
-                border: '1px solid #27272a',
+                background: isDarkMode ? '#18181b' : '#ffffff',
+                color: isDarkMode ? '#d4d4d8' : '#334155',
+                border: `1px solid ${isDarkMode ? '#27272a' : '#cbd5e1'}`,
                 padding: '8px 12px',
                 borderRadius: '20px',
                 fontSize: '12px',
                 fontWeight: 700,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: isDarkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.05)'
               }}
               title="Copier le lien de l'article"
             >
@@ -332,7 +335,7 @@ export default function BlogPostDetailPage() {
 
       {/* 3. Hero Cover Image */}
       <div style={{ maxWidth: '960px', margin: '0 auto 36px auto', padding: '0 16px' }}>
-        <div style={{ borderRadius: '24px', overflow: 'hidden', maxHeight: '520px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ borderRadius: '24px', overflow: 'hidden', maxHeight: '520px', boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.08)' }}>
           <img 
             src={post.coverImage} 
             alt={post.title} 
@@ -347,15 +350,15 @@ export default function BlogPostDetailPage() {
         {/* 4.1 Shop The Look: Attached Product Interactive Card (Mobile & Desktop) */}
         {linkedProducts.length > 0 && (
           <div style={{
-            background: 'linear-gradient(135deg, #18181b 0%, #121215 100%)',
-            border: '1.5px solid rgba(56, 189, 248, 0.3)',
+            background: isDarkMode ? 'linear-gradient(135deg, #18181b 0%, #121215 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            border: `1.5px solid ${isDarkMode ? 'rgba(56, 189, 248, 0.3)' : 'rgba(2, 132, 199, 0.25)'}`,
             borderRadius: '20px',
             padding: '18px 20px',
             marginBottom: '32px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+            boxShadow: isDarkMode ? '0 10px 25px rgba(0,0,0,0.3)' : '0 6px 20px rgba(0,0,0,0.05)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 900, color: '#38bdf8', letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 900, color: isDarkMode ? '#38bdf8' : '#0284c7', letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>🛒</span> SHOP THE ARTICLE / PAIRES ASSOCIÉES
               </span>
               <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 800, background: 'rgba(16,185,129,0.12)', padding: '2px 8px', borderRadius: '10px' }}>
@@ -373,8 +376,8 @@ export default function BlogPostDetailPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '14px',
-                      background: '#09090b',
-                      border: '1px solid #27272a',
+                      background: isDarkMode ? '#09090b' : '#ffffff',
+                      border: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
                       borderRadius: '16px',
                       padding: '12px 14px',
                       flexWrap: 'wrap'
@@ -392,15 +395,15 @@ export default function BlogPostDetailPage() {
 
                     <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                       <Link href={`/products/${prod.slug || prod.id}`} style={{ textDecoration: 'none' }}>
-                        <strong style={{ fontSize: '13.5px', color: '#ffffff', display: 'block', lineHeight: 1.3, marginBottom: '4px' }}>
+                        <strong style={{ fontSize: '13.5px', color: isDarkMode ? '#ffffff' : '#09090b', display: 'block', lineHeight: 1.3, marginBottom: '4px' }}>
                           {prod.name_fr}
                         </strong>
                       </Link>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 900, color: '#facc15' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 900, color: isDarkMode ? '#facc15' : '#ca8a04' }}>
                           {priceInfo.formattedPrice}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                        <span style={{ fontSize: '11px', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
                           (Stock : {prod.stock} restant)
                         </span>
                       </div>
@@ -410,8 +413,8 @@ export default function BlogPostDetailPage() {
                       <button
                         onClick={() => setQuickBuyProduct({ product: prod })}
                         style={{
-                          background: '#ffffff',
-                          color: '#09090b',
+                          background: isDarkMode ? '#ffffff' : '#09090b',
+                          color: isDarkMode ? '#09090b' : '#ffffff',
                           border: 'none',
                           padding: '9px 18px',
                           borderRadius: '20px',
@@ -423,7 +426,7 @@ export default function BlogPostDetailPage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          boxShadow: '0 4px 12px rgba(255, 255, 255, 0.2)'
+                          boxShadow: isDarkMode ? '0 4px 12px rgba(255, 255, 255, 0.2)' : '0 4px 12px rgba(0, 0, 0, 0.2)'
                         }}
                       >
                         <span>Commander</span>
@@ -433,8 +436,8 @@ export default function BlogPostDetailPage() {
                       <button
                         onClick={() => handleAddToCart(prod)}
                         style={{
-                          background: '#ffffff',
-                          color: '#09090b',
+                          background: isDarkMode ? '#ffffff' : '#09090b',
+                          color: isDarkMode ? '#09090b' : '#ffffff',
                           border: 'none',
                           padding: '8px 14px',
                           borderRadius: '20px',
@@ -453,9 +456,9 @@ export default function BlogPostDetailPage() {
                       <Link
                         href={`/products/${prod.slug || prod.id}`}
                         style={{
-                          background: '#27272a',
-                          color: '#ffffff',
-                          border: '1px solid #3f3f46',
+                          background: isDarkMode ? '#27272a' : '#f1f5f9',
+                          color: isDarkMode ? '#ffffff' : '#09090b',
+                          border: `1px solid ${isDarkMode ? '#3f3f46' : '#cbd5e1'}`,
                           padding: '8px 14px',
                           borderRadius: '20px',
                           fontSize: '12px',
@@ -474,7 +477,7 @@ export default function BlogPostDetailPage() {
         )}
 
         {/* 4.2 Formatted Reading Content */}
-        <div style={{ fontSize: '15.5px', color: '#d4d4d8', lineHeight: 1.75 }}>
+        <div style={{ fontSize: '15.5px', color: isDarkMode ? '#d4d4d8' : '#334155', lineHeight: 1.75 }}>
           {renderFormattedContent(post.content)}
         </div>
 
@@ -483,8 +486,8 @@ export default function BlogPostDetailPage() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderTop: '1px solid #27272a',
-          borderBottom: '1px solid #27272a',
+          borderTop: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
+          borderBottom: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
           padding: '16px 0',
           margin: '40px 0',
           flexWrap: 'wrap',
@@ -515,7 +518,7 @@ export default function BlogPostDetailPage() {
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {post.tags.map(t => (
-              <span key={t} style={{ background: '#18181b', color: '#a1a1aa', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px' }}>
+              <span key={t} style={{ background: isDarkMode ? '#18181b' : '#f1f5f9', color: isDarkMode ? '#a1a1aa' : '#475569', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', border: isDarkMode ? 'none' : '1px solid #e2e8f0' }}>
                 #{t}
               </span>
             ))}
@@ -525,7 +528,7 @@ export default function BlogPostDetailPage() {
         {/* 4.4 Related Articles Section */}
         {relatedPosts.length > 0 && (
           <div style={{ marginTop: '50px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#ffffff', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 900, color: isDarkMode ? '#ffffff' : '#09090b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>📚</span> À lire ensuite dans le Journal
             </h3>
 
@@ -539,24 +542,25 @@ export default function BlogPostDetailPage() {
                   key={rel.id}
                   href={`/blog/${rel.slug}`}
                   style={{
-                    background: '#121215',
-                    border: '1px solid #27272a',
+                    background: isDarkMode ? '#121215' : '#ffffff',
+                    border: `1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'}`,
                     borderRadius: '16px',
                     overflow: 'hidden',
                     textDecoration: 'none',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    boxShadow: isDarkMode ? 'none' : '0 4px 14px rgba(0,0,0,0.04)'
                   }}
                 >
                   <img src={rel.coverImage} alt={rel.title} style={{ width: '100%', height: '130px', objectFit: 'cover' }} />
                   <div style={{ padding: '14px' }}>
-                    <span style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 800, textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '10px', color: isDarkMode ? '#38bdf8' : '#0284c7', fontWeight: 800, textTransform: 'uppercase' }}>
                       {rel.category}
                     </span>
-                    <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: '#ffffff', margin: '6px 0', lineHeight: 1.35 }}>
+                    <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: isDarkMode ? '#ffffff' : '#09090b', margin: '6px 0', lineHeight: 1.35 }}>
                       {rel.title}
                     </h4>
-                    <span style={{ fontSize: '11px', color: '#71717a' }}>⏱️ {rel.readTime}</span>
+                    <span style={{ fontSize: '11px', color: isDarkMode ? '#71717a' : '#94a3b8' }}>⏱️ {rel.readTime}</span>
                   </div>
                 </Link>
               ))}

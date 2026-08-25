@@ -20,10 +20,10 @@ export default function CategoryGrid() {
     <section className="section" style={{ padding: '60px 0', background: '#fafafa' }}>
       <div className="container">
         <div className="section-header section-header-center" style={{ marginBottom: '40px' }}>
-          <h2 style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '-1px', color: '#111111' }}>
+          <h2 style={{ fontSize: 'clamp(20px, 5.2vw, 28px)', fontWeight: 900, letterSpacing: '-0.6px', color: '#111111', margin: 0 }}>
             {t('home.categoriesTitle')}
           </h2>
-          <p style={{ fontSize: '14px', color: '#666666', marginTop: '8px' }}>
+          <p style={{ fontSize: '13px', color: '#666666', marginTop: '4px' }}>
             {t('common.allCategories')}
           </p>
         </div>

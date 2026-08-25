@@ -141,23 +141,166 @@ export default function TrustpilotSlider() {
             Chaque pièce est rigoureusement examinée avant expédition. Vous recevez un suivi en temps réel sur WhatsApp dès le départ de votre colis.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', maxWidth: '980px', margin: '0 auto' }}>
-            <div style={{ padding: '18px 20px', borderRadius: '16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-              <div style={{ fontSize: '20px', marginBottom: '8px' }}>🛡️</div>
-              <strong style={{ fontSize: '13.5px', color: '#ffffff', display: 'block' }}>100% Neuf &amp; Authentique</strong>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px', display: 'block' }}>Boîte d&apos;origine &amp; accessoires inclus.</span>
+          <div style={{
+            maxWidth: '1020px',
+            margin: '0 auto',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '18px',
+            padding: '4px 8px',
+            boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '0'
+          }}>
+            {/* 1. Sceau d'Authenticité & Certification */}
+            <div style={{
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textAlign: 'left'
+            }}>
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="34" height="34" viewBox="0 0 64 64" fill="none">
+                  <defs>
+                    <linearGradient id="goldSeal" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FDE047" />
+                      <stop offset="50%" stopColor="#CA8A04" />
+                      <stop offset="100%" stopColor="#A16207" />
+                    </linearGradient>
+                    <linearGradient id="goldInner" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#27272A" />
+                      <stop offset="100%" stopColor="#09090B" />
+                    </linearGradient>
+                    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#EAB308" floodOpacity="0.4"/>
+                    </filter>
+                  </defs>
+                  {/* Rubans de certification */}
+                  <path d="M22 42L16 56L32 50L48 56L42 42" fill="url(#goldSeal)" opacity="0.9" />
+                  {/* Sceau doré */}
+                  <circle cx="32" cy="28" r="22" fill="url(#goldSeal)" filter="url(#goldGlow)" />
+                  <circle cx="32" cy="28" r="18" fill="url(#goldInner)" stroke="#FDE047" strokeWidth="1.5" />
+                  {/* Coche de certification officielle */}
+                  <path d="M23 28L29 34L41 20" stroke="#FDE047" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="32" cy="14.5" r="1.5" fill="#FDE047" />
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ fontSize: '12.5px', color: '#ffffff', fontWeight: 800, display: 'block', letterSpacing: '-0.2px' }}>
+                  100% Neuf &amp; Authentique
+                </strong>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '2px', display: 'block', lineHeight: '1.3' }}>
+                  Boîte d&apos;origine &amp; accessoires inclus.
+                </span>
+              </div>
             </div>
 
-            <div style={{ padding: '18px 20px', borderRadius: '16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-              <div style={{ fontSize: '20px', marginBottom: '8px' }}>⚡</div>
-              <strong style={{ fontSize: '13.5px', color: '#ffffff', display: 'block' }}>Expédition Express 24/48h</strong>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px', display: 'block' }}>Livraison sécurisée avec coursier ou transporteur.</span>
+            {/* 2. Camion / Véhicule de Livraison Express */}
+            <div style={{
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textAlign: 'left'
+            }}>
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="36" height="36" viewBox="0 0 64 64" fill="none">
+                  <defs>
+                    <linearGradient id="truckBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#38BDF8" />
+                      <stop offset="100%" stopColor="#0284C7" />
+                    </linearGradient>
+                    <linearGradient id="truckCab" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#0EA5E9" />
+                      <stop offset="100%" stopColor="#0369A1" />
+                    </linearGradient>
+                    <linearGradient id="wheelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#64748B" />
+                      <stop offset="100%" stopColor="#0F172A" />
+                    </linearGradient>
+                    <filter id="truckGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#38BDF8" floodOpacity="0.4"/>
+                    </filter>
+                  </defs>
+                  {/* Trais de vitesse livraison */}
+                  <path d="M4 22H11M2 28H9M5 34H13" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" opacity="0.65"/>
+                  {/* Caisse de transport sécurisée */}
+                  <rect x="14" y="16" width="28" height="26" rx="4" fill="url(#truckBody)" filter="url(#truckGlow)"/>
+                  <path d="M23 16V42M32 16V42" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" strokeDasharray="3 3"/>
+                  {/* Éclair Express */}
+                  <path d="M28 21L23 30H29L26 38L34 28H28L31 21H28Z" fill="#FEF08A"/>
+                  {/* Cabine conducteur */}
+                  <path d="M42 24H51L58 32V42H42V24Z" fill="url(#truckCab)"/>
+                  {/* Pare-brise */}
+                  <path d="M44 26H49.5L54 32H44V26Z" fill="#BAE6FD" opacity="0.9"/>
+                  {/* Phare avant */}
+                  <rect x="56.5" y="35" width="2.5" height="4" rx="1.2" fill="#FEF08A"/>
+                  {/* Roues */}
+                  <circle cx="24" cy="44" r="6" fill="url(#wheelGrad)"/>
+                  <circle cx="24" cy="44" r="2.5" fill="#E2E8F0"/>
+                  <circle cx="48" cy="44" r="6" fill="url(#wheelGrad)"/>
+                  <circle cx="48" cy="44" r="2.5" fill="#E2E8F0"/>
+                  {/* Ombre au sol */}
+                  <ellipse cx="36" cy="52" rx="24" ry="2.5" fill="rgba(0,0,0,0.3)"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ fontSize: '12.5px', color: '#ffffff', fontWeight: 800, display: 'block', letterSpacing: '-0.2px' }}>
+                  Expédition Express 24/48h
+                </strong>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '2px', display: 'block', lineHeight: '1.3' }}>
+                  Livraison sécurisée avec coursier ou transporteur.
+                </span>
+              </div>
             </div>
 
-            <div style={{ padding: '18px 20px', borderRadius: '16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-              <div style={{ fontSize: '20px', marginBottom: '8px' }}>💬</div>
-              <strong style={{ fontSize: '13.5px', color: '#ffffff', display: 'block' }}>Suivi Client Personnalisé</strong>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px', display: 'block' }}>Assistance dédiée sur WhatsApp 7j/7.</span>
+            {/* 3. Support Client WhatsApp Dédié */}
+            <div style={{
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textAlign: 'left'
+            }}>
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="34" height="34" viewBox="0 0 64 64" fill="none">
+                  <defs>
+                    <linearGradient id="supportGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#34D399" />
+                      <stop offset="100%" stopColor="#059669" />
+                    </linearGradient>
+                    <linearGradient id="badgeDark" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#27272A" />
+                      <stop offset="100%" stopColor="#09090B" />
+                    </linearGradient>
+                    <filter id="supportGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#10B981" floodOpacity="0.4"/>
+                    </filter>
+                  </defs>
+                  {/* Cadre de conciergerie */}
+                  <circle cx="32" cy="32" r="23" fill="url(#badgeDark)" stroke="#10B981" strokeWidth="1.5" filter="url(#supportGlow)"/>
+                  {/* Casque audio de conseiller client */}
+                  <path d="M20 32C20 25.37 25.37 20 32 20C38.63 20 44 25.37 44 32V36C44 38.2 42.2 40 40 40H38V30H42" stroke="url(#supportGrad)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Coussinets */}
+                  <rect x="18" y="28" width="5" height="10" rx="2.5" fill="#34D399"/>
+                  <rect x="41" y="28" width="5" height="10" rx="2.5" fill="#34D399"/>
+                  {/* Micro conseiller */}
+                  <path d="M22 36C22 41 26 44 32 44H34" stroke="url(#supportGrad)" strokeWidth="2.5" strokeLinecap="round"/>
+                  <circle cx="35" cy="44" r="2.5" fill="#FEF08A"/>
+                  {/* Pastille en direct vert vif */}
+                  <circle cx="47" cy="19" r="4.5" fill="#10B981" stroke="#09090B" strokeWidth="2"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ fontSize: '12.5px', color: '#ffffff', fontWeight: 800, display: 'block', letterSpacing: '-0.2px' }}>
+                  Suivi Client Personnalisé
+                </strong>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '2px', display: 'block', lineHeight: '1.3' }}>
+                  Assistance dédiée sur WhatsApp 7j/7.
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -8,12 +8,12 @@ import { useAppStore } from '@/lib/store';
 const initialHeroSlides = [
   {
     id: 1,
-    image: '/france_jersey_hero.jpg',
-    leftText: 'COLLECTION OFFICIELLE',
+    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?q=80&w=1600&auto=format&fit=crop',
+    leftText: 'HEADWEAR & CASQUETTES',
     promoTitle: "AYMARD STORE",
-    promoSubtitle: 'SÉLECTION VÊTEMENTS & CRÉATEURS',
-    accentColor: '#38bdf8',
-    link: '/products?category=clothing'
+    promoSubtitle: 'FITTED, SNAPBACK & ÉDITIONS LIMITÉES',
+    accentColor: '#f59e0b',
+    link: '/products?category=hats'
   },
   {
     id: 2,
@@ -26,20 +26,20 @@ const initialHeroSlides = [
   },
   {
     id: 3,
-    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1600&auto=format&fit=crop',
-    leftText: 'STREETWEAR EXCLUSIF',
-    promoTitle: 'NOUVEAUX DROPS',
-    promoSubtitle: 'DERNIÈRES TENDANCES',
-    accentColor: '#a855f7',
-    link: '/products?category=clothing'
+    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1600&auto=format&fit=crop',
+    leftText: 'HORLOGERIE D\'EXCEPTION',
+    promoTitle: 'MONTRES & CHRONOS',
+    promoSubtitle: 'ÉLÉGANCE & PRÉCISION',
+    accentColor: '#10b981',
+    link: '/products?category=watches'
   },
   {
     id: 4,
     image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop',
     leftText: 'BOUTIQUE OFFICIELLE',
     promoTitle: 'EXPÉDIÉ EN 24/48H',
-    promoSubtitle: 'LIVRAISON SUIVIE SUR WHATSAPP',
-    accentColor: '#10b981',
+    promoSubtitle: 'COMMANDEZ DIRECTEMENT SUR WHATSAPP',
+    accentColor: '#38bdf8',
     link: '/products'
   }
 ];
