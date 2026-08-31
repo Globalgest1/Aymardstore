@@ -12,6 +12,7 @@ import {
   calculatePointsEarned
 } from '@/lib/store';
 import { trackPixelEvent } from '@/lib/pixel-tracker';
+import { openLeekPayCheckout } from '@/lib/leekpay';
 
 const CITIES_BY_COUNTRY: Record<string, string[]> = {
   benin: ['Cotonou', 'Abomey-Calavi', 'Porto-Novo', 'Ouidah', 'Parakou', 'Godomey', 'Akpakpa', 'Haie Vive', 'Cadjehoun', 'Fidjrosse', 'Bohicon', 'Natitingou'],
@@ -173,6 +174,37 @@ export default function QuickBuyModal() {
     }
   };
 
+  // Capture automatique en direct : dès que le client a saisi son numéro ou son nom,
+  // même s'il oublie d'appuyer sur le bouton "Acheter" ou qu'il est distrait !
+  useEffect(() => {
+    if (!phone || phone.trim().length < 6) return;
+    if (checkoutStep === 'SUCCESS') return;
+
+    const timer = setTimeout(() => {
+      recordOrUpdateLead('CONTACT_ENTERED');
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [phone, fullName, city, street, selectedSize, selectedColor, quantity, checkoutStep]);
+
+  // Capture de secours s'il quitte la page, ferme l'onglet ou passe sur une autre application
+  useEffect(() => {
+    const handleAppExit = () => {
+      if ((phone && phone.trim().length >= 6) || fullName) {
+        if (checkoutStep !== 'SUCCESS') {
+          recordOrUpdateLead('CONTACT_ENTERED');
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleAppExit);
+    document.addEventListener('visibilitychange', handleAppExit);
+    return () => {
+      window.removeEventListener('beforeunload', handleAppExit);
+      document.removeEventListener('visibilitychange', handleAppExit);
+    };
+  }, [phone, fullName, checkoutStep]);
+
   // Close modal and track abandonment if not paid
   const handleClose = () => {
     if ((checkoutStep === 'FORM' || checkoutStep === 'GATEWAY') && (phone || fullName)) {
@@ -194,7 +226,7 @@ export default function QuickBuyModal() {
     }
   };
 
-  // Step 1: Handle Submit (Either direct COD validation or open Gateway for online payment)
+    // Step 1: Handle Submit (Either direct COD validation or open Gateway for online payment)
   const handleProceedToGateway = () => {
     if (!phone || phone.length < 6) {
       setErrorMessage('Veuillez renseigner votre numéro de téléphone / WhatsApp pour la livraison');
@@ -213,9 +245,35 @@ export default function QuickBuyModal() {
       return;
     }
 
-    // Online payment: Open Gateway
+    // Online payment: Open LeekPay directly for instantaneous checkout!
     recordOrUpdateLead('PAYMENT_OPENED');
     setCheckoutStep('GATEWAY');
+    
+    // Auto-launch LeekPay checkout
+    handleLaunchLeekPay();
+  };
+
+  const handleLaunchLeekPay = () => {
+    const amountInFcfa = activeLoc.currency === 'FCFA' 
+      ? totalAmount 
+      : Math.round(totalAmount * (activeLoc.exchangeRate || 655.957));
+
+    openLeekPayCheckout({
+      amount: amountInFcfa,
+      currency: 'XOF',
+      description: `Achat AYMARD STORE - ${product?.name_fr || 'Article'}`,
+      customerEmail: email || user?.email || undefined,
+      customerName: fullName,
+      onSuccess: (tx) => {
+        handleConfirmPaymentSuccess(false, tx);
+      },
+      onCancel: () => {
+        handleCancelPayment('Paiement LeekPay interrompu');
+      },
+      onError: (err) => {
+        setErrorMessage(err?.message || 'Erreur lors de la session LeekPay');
+      }
+    });
   };
 
   // Step 2: Cancel or Payment Failed (Never creates paid order, never notifies merchant)
@@ -233,7 +291,7 @@ export default function QuickBuyModal() {
   };
 
   // Step 3: Payment Confirmed / COD Validated
-  const handleConfirmPaymentSuccess = async (isCodOrder: boolean = false) => {
+  const handleConfirmPaymentSuccess = async (isCodOrder: boolean = false, txData?: any) => {
     setIsProcessing(true);
     const orderNum = `AYM-${Date.now().toString().slice(-6)}`;
     const trackingNum = `TRK-BJ-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -260,8 +318,8 @@ export default function QuickBuyModal() {
         currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'EUR' | 'FCFA',
         status: 'PENDING' as const,
         paymentStatus: (isCodOrder ? 'UNPAID' : 'PAID') as 'PAID' | 'UNPAID',
-        paymentMethod: (isCodOrder ? 'COD' : (paymentMethod === 'MOMO' ? 'FEDAPAY_MOMO' : 'FEDAPAY_CARD')),
-        paymentTransactionId: isCodOrder ? 'COD_DELIVERY_PAYMENT' : `tx_pay_${Date.now()}`,
+        paymentMethod: (isCodOrder ? 'COD' : 'LEEKPAY'),
+        paymentTransactionId: isCodOrder ? 'COD_DELIVERY_PAYMENT' : (txData?.id || txData?.reference || txData?.custom_url || `tx_leekpay_${Date.now()}`),
         trackingNumber: trackingNum,
         shippingAddress: {
           fullName,
@@ -489,7 +547,7 @@ export default function QuickBuyModal() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => handleConfirmPaymentSuccess(false)}
+                  onClick={handleLaunchLeekPay}
                   style={{
                     width: '100%',
                     height: '52px',
@@ -509,7 +567,7 @@ export default function QuickBuyModal() {
                   }}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span>CONFIRMER LE PAIEMENT ({formatAmount(totalAmount, activeLoc)})</span>
+                  <span>⚡ PAYER VIA LEEKPAY ({formatAmount(totalAmount, activeLoc)})</span>
                 </button>
 
                 <button

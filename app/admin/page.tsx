@@ -45,7 +45,7 @@ const cleanExistingSizes = (sizes?: string[]): string[] => {
 
 // ============ TYPES ============
 type Tab = 'dashboard' | 'products' | 'categories' | 'homeCms' | 'orders' | 'abandonedCheckouts' | 'reviews' | 'marketing' | 'blog' | 'clients' | 'supportChat' | 'transactions' | 'accounting' | 'promos' | 'delivery' | 'locations' | 'suppliers' | 'employees' | 'analytics' | 'pixels' | 'settings' | 'profile';
-type ModalType = 'addProduct' | 'editProduct' | 'addCategory' | 'addSubCategory' | 'addClient' | 'addSupplier' | 'addSupplyOrder' | 'addEmployee' | 'payEmployee' | 'addDeliveryZone' | 'addPromo' | 'addBroadcastNotif' | 'addExpense' | 'editExpense' | null;
+type ModalType = 'addProduct' | 'batchAddProducts' | 'editProduct' | 'addCategory' | 'addSubCategory' | 'addClient' | 'addSupplier' | 'addSupplyOrder' | 'addEmployee' | 'payEmployee' | 'addDeliveryZone' | 'addPromo' | 'addBroadcastNotif' | 'addExpense' | 'editExpense' | null;
 
 const getTabIcon = (id: Tab) => {
   switch (id) {
@@ -245,6 +245,67 @@ export default function AdminDashboard() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [customColorInput, setCustomColorInput] = useState('');
+
+  // AI Product Scanner & Multi-Photo State
+  const [prodFormImages, setProdFormImages] = useState<string[]>([]);
+  const [isAiScanning, setIsAiScanning] = useState<boolean>(false);
+  const [aiScanNotes, setAiScanNotes] = useState<string>('');
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string>('');
+
+  // Controlled fields for Add Product form
+  const [prodFormName, setProdFormName] = useState<string>('');
+  const [prodFormNameEn, setProdFormNameEn] = useState<string>('');
+  const [prodFormNameEs, setProdFormNameEs] = useState<string>('');
+  const [prodFormBrand, setProdFormBrand] = useState<string>('');
+  const [prodFormCategory, setProdFormCategory] = useState<string>('shoes');
+  const [prodFormDescription, setProdFormDescription] = useState<string>('');
+  const [prodFormDescEn, setProdFormDescEn] = useState<string>('');
+  const [prodFormDescEs, setProdFormDescEs] = useState<string>('');
+  const [prodFormBadge, setProdFormBadge] = useState<string>('NEW');
+
+  // Controlled Pricing fields (AI Suggestions + Manual)
+  const [prodFormPrice, setProdFormPrice] = useState<string>('');
+  const [prodFormComparePrice, setProdFormComparePrice] = useState<string>('');
+  const [prodFormBeninPrice, setProdFormBeninPrice] = useState<string>('');
+  const [prodFormBeninComparePrice, setProdFormBeninComparePrice] = useState<string>('');
+  const [prodFormFrancePrice, setProdFormFrancePrice] = useState<string>('');
+  const [prodFormFranceComparePrice, setProdFormFranceComparePrice] = useState<string>('');
+  const [prodFormBelgiquePrice, setProdFormBelgiquePrice] = useState<string>('');
+  const [prodFormBelgiqueComparePrice, setProdFormBelgiqueComparePrice] = useState<string>('');
+  const [urlImageInput, setUrlImageInput] = useState<string>('');
+
+  // Batch Multi-Product AI Import State
+  const [batchPhotos, setBatchPhotos] = useState<string[]>([]);
+  const [batchProducts, setBatchProducts] = useState<{
+    id: string;
+    image: string;
+    name: string;
+    name_en?: string;
+    name_es?: string;
+    brand: string;
+    category: string;
+    price: number;
+    comparePrice?: number;
+    locationPrice_benin?: number;
+    locationComparePrice_benin?: number;
+    locationPrice_france?: number;
+    locationComparePrice_france?: number;
+    locationPrice_belgique?: number;
+    locationComparePrice_belgique?: number;
+    description: string;
+    description_en?: string;
+    description_es?: string;
+    colors?: string[];
+    sizes?: string[];
+    badge?: string;
+    stock?: number;
+    status: 'pending' | 'scanning' | 'done' | 'error';
+    error?: string;
+  }[]>([]);
+  const [isBatchScanning, setIsBatchScanning] = useState<boolean>(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const [batchViewMode, setBatchViewMode] = useState<'cards' | 'table'>('cards');
+  const [batchExpandedId, setBatchExpandedId] = useState<string | null>(null);
   
   // Live Chat Support State
   const [selectedConvId, setSelectedConvId] = useState<string>('');
@@ -682,6 +743,265 @@ export default function AdminDashboard() {
     <div className="admin-empty-state"><div className="admin-empty-state-icon">{icon}</div><div className="admin-empty-state-text">{text}</div></div>
   );
 
+  const openAddProductModal = () => {
+    setEditingProduct(null);
+    setProdFormName('');
+    setProdFormNameEn('');
+    setProdFormNameEs('');
+    setProdFormBrand('');
+    setProdFormCategory('shoes');
+    setProdFormDescription('');
+    setProdFormDescEn('');
+    setProdFormDescEs('');
+    setProdFormBadge('NEW');
+    setProdFormImages([]);
+    setUrlImageInput('');
+    setProdFormPrice('');
+    setProdFormComparePrice('');
+    setProdFormBeninPrice('');
+    setProdFormBeninComparePrice('');
+    setProdFormFrancePrice('');
+    setProdFormFranceComparePrice('');
+    setProdFormBelgiquePrice('');
+    setProdFormBelgiqueComparePrice('');
+    setAiScanNotes('');
+    setAiSuccessMessage('');
+    setSelectedSizes(['39', '40', '41', '42', '43', '44']);
+    setSelectedColors(['Noir', 'Blanc']);
+    setModal('addProduct');
+  };
+
+  const handleMultiImageFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    const readers = fileArray.map(f => new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve(ev.target?.result as string);
+      reader.readAsDataURL(f);
+    }));
+    Promise.all(readers).then(results => {
+      const valid = results.filter(Boolean);
+      setProdFormImages(prev => [...prev, ...valid]);
+      showToast(`📸 ${valid.length} photo(s) ajoutée(s) !`, 'success');
+    });
+    e.target.value = '';
+  };
+
+  const handleScanProductWithAi = async () => {
+    if (prodFormImages.length === 0) {
+      showToast('Veuillez importer au moins une photo du produit', 'warning');
+      return;
+    }
+    setIsAiScanning(true);
+    setAiSuccessMessage('');
+    try {
+      const res = await fetch('/api/admin/generate-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: prodFormImages,
+          additionalNotes: aiScanNotes,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Erreur lors de l\'analyse IA');
+      }
+
+      const data = json.data;
+      if (data.name) setProdFormName(data.name);
+      if (data.name_en) setProdFormNameEn(data.name_en);
+      if (data.name_es) setProdFormNameEs(data.name_es);
+      if (data.brand) setProdFormBrand(data.brand);
+      if (data.category) setProdFormCategory(data.category);
+      if (data.description) setProdFormDescription(data.description);
+      if (data.description_en) setProdFormDescEn(data.description_en);
+      if (data.description_es) setProdFormDescEs(data.description_es);
+      if (data.badge) setProdFormBadge(data.badge);
+
+      if (data.pricing) {
+        if (data.pricing.price) setProdFormPrice(String(data.pricing.price));
+        if (data.pricing.comparePrice) setProdFormComparePrice(String(data.pricing.comparePrice));
+        if (data.pricing.beninPrice) setProdFormBeninPrice(String(data.pricing.beninPrice));
+        if (data.pricing.beninComparePrice) setProdFormBeninComparePrice(String(data.pricing.beninComparePrice));
+        if (data.pricing.francePrice) setProdFormFrancePrice(String(data.pricing.francePrice));
+        if (data.pricing.franceComparePrice) setProdFormFranceComparePrice(String(data.pricing.franceComparePrice));
+        if (data.pricing.belgiquePrice) setProdFormBelgiquePrice(String(data.pricing.belgiquePrice));
+        if (data.pricing.belgiqueComparePrice) setProdFormBelgiqueComparePrice(String(data.pricing.belgiqueComparePrice));
+      }
+
+      if (data.colors && Array.isArray(data.colors) && data.colors.length > 0) {
+        setSelectedColors(data.colors);
+      }
+      if (data.suggestedSizes && Array.isArray(data.suggestedSizes) && data.suggestedSizes.length > 0) {
+        setSelectedSizes(data.suggestedSizes);
+      }
+
+      setAiSuccessMessage(`✨ Analyse réussie sur ${prodFormImages.length} photo(s) ! Fiche produit & prix suggérés complétés.`);
+      showToast('✨ Fiche & prix suggérés générés par l’IA !', 'success');
+    } catch (err: any) {
+      console.error('Erreur scan IA:', err);
+      showToast(err.message || 'Échec de l\'analyse IA', 'error');
+    } finally {
+      setIsAiScanning(false);
+    }
+  };
+
+  const openBatchModal = () => {
+    setBatchPhotos([]);
+    setBatchProducts([]);
+    setIsBatchScanning(false);
+    setBatchProgress({ current: 0, total: 0 });
+    setModal('batchAddProducts');
+  };
+
+  const handleBatchPhotoFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    const readers = fileArray.map(f => new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve(ev.target?.result as string);
+      reader.readAsDataURL(f);
+    }));
+    Promise.all(readers).then(results => {
+      const valid = results.filter(Boolean);
+      setBatchPhotos(prev => [...prev, ...valid]);
+      showToast(`📸 ${valid.length} photo(s) chargée(s) pour l'import groupé !`, 'info');
+    });
+    e.target.value = '';
+  };
+
+  const handleStartBatchScan = async () => {
+    if (batchPhotos.length === 0) {
+      showToast('Veuillez sélectionner au moins une photo', 'warning');
+      return;
+    }
+
+    setIsBatchScanning(true);
+    const initialList: typeof batchProducts = batchPhotos.map((img, idx) => ({
+      id: genId(),
+      image: img,
+      name: `Article #${idx + 1}`,
+      brand: 'Aymard Store',
+      category: 'shoes',
+      price: 99,
+      comparePrice: 120,
+      locationPrice_benin: 65000,
+      locationComparePrice_benin: 80000,
+      description: '',
+      badge: 'NEW',
+      status: 'pending',
+    }));
+    setBatchProducts(initialList);
+    setBatchProgress({ current: 0, total: batchPhotos.length });
+
+    const currentList = [...initialList];
+
+    for (let i = 0; i < batchPhotos.length; i++) {
+      setBatchProgress({ current: i + 1, total: batchPhotos.length });
+      currentList[i].status = 'scanning';
+      setBatchProducts([...currentList]);
+
+      try {
+        const res = await fetch('/api/admin/generate-product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: batchPhotos[i] }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || 'Erreur scan');
+        }
+        const data = json.data;
+        currentList[i] = {
+          ...currentList[i],
+          name: data.name || currentList[i].name,
+          name_en: data.name_en || currentList[i].name,
+          name_es: data.name_es || currentList[i].name,
+          brand: data.brand || currentList[i].brand,
+          category: data.category || currentList[i].category,
+          price: data.pricing?.price || 99,
+          comparePrice: data.pricing?.comparePrice || undefined,
+          locationPrice_benin: data.pricing?.beninPrice || 65000,
+          locationComparePrice_benin: data.pricing?.beninComparePrice || undefined,
+          locationPrice_france: data.pricing?.francePrice || undefined,
+          locationComparePrice_france: data.pricing?.franceComparePrice || undefined,
+          locationPrice_belgique: data.pricing?.belgiquePrice || undefined,
+          locationComparePrice_belgique: data.pricing?.belgiqueComparePrice || undefined,
+          description: data.description || '',
+          description_en: data.description_en || '',
+          description_es: data.description_es || '',
+          colors: data.colors || ['Noir', 'Blanc'],
+          sizes: data.suggestedSizes || (data.category === 'shoes' ? ['39', '40', '41', '42', '43', '44'] : ['S', 'M', 'L', 'XL']),
+          badge: data.badge || 'NEW',
+          stock: 50,
+          status: 'done',
+        };
+      } catch (err: any) {
+        console.error(`Erreur scan produit #${i + 1}:`, err);
+        currentList[i].status = 'error';
+        currentList[i].error = err.message || 'Échec analyse';
+      }
+      setBatchProducts([...currentList]);
+    }
+
+    setIsBatchScanning(false);
+    showToast('✨ Analyse groupée terminée ! Vérifiez les fiches et validez l\'import.', 'success');
+  };
+
+  const handleImportAllBatch = () => {
+    const readyItems = batchProducts.filter(item => item.status === 'done');
+    if (readyItems.length === 0) {
+      showToast('Aucun produit prêt à être importé.', 'warning');
+      return;
+    }
+
+    const newProducts: Product[] = readyItems.map(item => {
+      const locPrices: Record<string, number> = {};
+      const locCompPrices: Record<string, number> = {};
+
+      if (item.locationPrice_benin && item.locationPrice_benin > 0) locPrices.benin = item.locationPrice_benin;
+      if (item.locationPrice_france && item.locationPrice_france > 0) locPrices.france = item.locationPrice_france;
+      if (item.locationPrice_belgique && item.locationPrice_belgique > 0) locPrices.belgique = item.locationPrice_belgique;
+
+      if (item.locationComparePrice_benin && item.locationComparePrice_benin > 0) locCompPrices.benin = item.locationComparePrice_benin;
+      if (item.locationComparePrice_france && item.locationComparePrice_france > 0) locCompPrices.france = item.locationComparePrice_france;
+      if (item.locationComparePrice_belgique && item.locationComparePrice_belgique > 0) locCompPrices.belgique = item.locationComparePrice_belgique;
+
+      return {
+        id: item.id || genId(),
+        name_fr: item.name,
+        name_en: item.name_en || item.name,
+        name_es: item.name_es || item.name,
+        slug: item.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || `prod-${Date.now()}`,
+        brand: item.brand,
+        price: item.price,
+        comparePrice: item.comparePrice,
+        category: item.category,
+        images: [item.image],
+        description_fr: item.description || `Superbe ${item.name} de la marque ${item.brand}.`,
+        description_en: item.description_en || '',
+        description_es: item.description_es || '',
+        rating: 5,
+        reviewCount: 0,
+        isNew: true,
+        isFeatured: false,
+        badge: item.badge || 'NEW',
+        stock: item.stock || 50,
+        sizes: item.sizes,
+        colors: item.colors,
+        locationPrices: Object.keys(locPrices).length > 0 ? locPrices : undefined,
+        locationComparePrices: Object.keys(locCompPrices).length > 0 ? locCompPrices : undefined,
+      };
+    });
+
+    store.addProducts(newProducts);
+    showToast(`🎉 ${newProducts.length} produits importés avec succès dans votre catalogue !`, 'success');
+    setModal(null);
+  };
+
   // ======= MODAL FORMS =======
   const renderModal = () => {
     if (!modal) return null;
@@ -691,7 +1011,11 @@ export default function AdminDashboard() {
     const handleAddProduct = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const fd = new FormData(e.currentTarget);
-      const nameVal = fd.get('name') as string;
+      const nameVal = (fd.get('name') as string) || prodFormName;
+      const brandVal = (fd.get('brand') as string) || prodFormBrand || 'Aymard Store';
+      const categoryVal = (fd.get('category') as string) || prodFormCategory || 'shoes';
+      const descVal = (fd.get('description') as string) || prodFormDescription || '';
+
       const sortedSizes = [...selectedSizes].sort((a, b) => {
         const numA = parseInt(a);
         const numB = parseInt(b);
@@ -702,40 +1026,45 @@ export default function AdminDashboard() {
       const locPrices: Record<string, number> = {};
       const locCompPrices: Record<string, number> = {};
 
-      const beninP = parseFloat(fd.get('locationPrice_benin') as string);
-      if (!isNaN(beninP) && beninP > 0) locPrices.benin = beninP;
-      const beninC = parseFloat(fd.get('locationComparePrice_benin') as string);
-      if (!isNaN(beninC) && beninC > 0) locCompPrices.benin = beninC;
+      const priceVal = parseFloat(fd.get('price') as string) || parseFloat(prodFormPrice) || 0;
+      const comparePriceVal = parseFloat(fd.get('originalPrice') as string) || parseFloat(prodFormComparePrice) || undefined;
 
-      const franceP = parseFloat(fd.get('locationPrice_france') as string);
-      if (!isNaN(franceP) && franceP > 0) locPrices.france = franceP;
-      const franceC = parseFloat(fd.get('locationComparePrice_france') as string);
-      if (!isNaN(franceC) && franceC > 0) locCompPrices.france = franceC;
+      const beninP = parseFloat(fd.get('locationPrice_benin') as string) || parseFloat(prodFormBeninPrice) || 0;
+      if (beninP > 0) locPrices.benin = beninP;
+      const beninC = parseFloat(fd.get('locationComparePrice_benin') as string) || parseFloat(prodFormBeninComparePrice) || 0;
+      if (beninC > 0) locCompPrices.benin = beninC;
 
-      const belgiqueP = parseFloat(fd.get('locationPrice_belgique') as string);
-      if (!isNaN(belgiqueP) && belgiqueP > 0) locPrices.belgique = belgiqueP;
-      const belgiqueC = parseFloat(fd.get('locationComparePrice_belgique') as string);
-      if (!isNaN(belgiqueC) && belgiqueC > 0) locCompPrices.belgique = belgiqueC;
+      const franceP = parseFloat(fd.get('locationPrice_france') as string) || parseFloat(prodFormFrancePrice) || 0;
+      if (franceP > 0) locPrices.france = franceP;
+      const franceC = parseFloat(fd.get('locationComparePrice_france') as string) || parseFloat(prodFormFranceComparePrice) || 0;
+      if (franceC > 0) locCompPrices.france = franceC;
+
+      const belgiqueP = parseFloat(fd.get('locationPrice_belgique') as string) || parseFloat(prodFormBelgiquePrice) || 0;
+      if (belgiqueP > 0) locPrices.belgique = belgiqueP;
+      const belgiqueC = parseFloat(fd.get('locationComparePrice_belgique') as string) || parseFloat(prodFormBelgiqueComparePrice) || 0;
+      if (belgiqueC > 0) locCompPrices.belgique = belgiqueC;
+
+      const finalImages = prodFormImages.length > 0 ? prodFormImages : [fd.get('image') as string || '/images/placeholder.jpg'];
 
       const p: Product = {
         id: genId(), 
         name_fr: nameVal, 
-        name_en: nameVal, 
-        name_es: nameVal,
+        name_en: prodFormNameEn || nameVal, 
+        name_es: prodFormNameEs || nameVal,
         slug: nameVal.toLowerCase().replace(/\s+/g, '-'),
-        brand: fd.get('brand') as string,
-        price: parseFloat(fd.get('price') as string), 
-        comparePrice: parseFloat(fd.get('originalPrice') as string) || undefined,
-        category: fd.get('category') as string, 
-        images: [fd.get('image') as string || '/images/placeholder.jpg'],
-        description_fr: fd.get('description') as string || '', 
-        description_en: '', 
-        description_es: '',
+        brand: brandVal,
+        price: priceVal, 
+        comparePrice: comparePriceVal,
+        category: categoryVal, 
+        images: finalImages,
+        description_fr: descVal, 
+        description_en: prodFormDescEn || '', 
+        description_es: prodFormDescEs || '',
         rating: 5, 
         reviewCount: 0,
         isNew: true, 
         isFeatured: false, 
-        badge: 'NEW', 
+        badge: prodFormBadge || 'NEW', 
         stock: parseInt(fd.get('stock') as string) || 50,
         sizes: sortedSizes.length > 0 ? sortedSizes : undefined,
         colors: selectedColors.length > 0 ? selectedColors : undefined,
@@ -1034,6 +1363,7 @@ export default function AdminDashboard() {
 
     const titles: Record<string, string> = {
       addProduct: '📦 Ajouter un nouveau produit', 
+      batchAddProducts: '⚡ Import Multi-Produits en Masse par IA',
       editProduct: '✏️ Modifier le produit, pointures & couleurs',
       addCategory: '🏷️ Nouvelle catégorie principale', 
       addSubCategory: '🌿 Nouvelle sous-catégorie', 
@@ -1050,16 +1380,236 @@ export default function AdminDashboard() {
 
     return (
       <div className="admin-modal-overlay" onClick={close} role="presentation">
-        <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" style={{ maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" style={{ maxWidth: modal === 'batchAddProducts' ? '960px' : '640px', width: modal === 'batchAddProducts' ? '96%' : undefined, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
           <div className="admin-modal-title" id="admin-modal-title">{titles[modal]}</div>
 
           {modal === 'addProduct' && (
             <form onSubmit={handleAddProduct}>
+              {/* SÉLECTEUR DE MODE D'AJOUT */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', background: 'var(--adm-card-border)', padding: '4px', borderRadius: '14px' }}>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'var(--adm-card-bg)',
+                    color: 'var(--adm-text-h)',
+                    fontWeight: 800,
+                    fontSize: '12px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>📦</span>
+                  <span>Produit Unique (Multi-photos)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openBatchModal}
+                  style={{
+                    flex: 1,
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--adm-text-m)',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>⚡</span>
+                  <span>Multi-Produits en Masse (Plusieurs articles)</span>
+                </button>
+              </div>
+
+              {/* ASSISTANT SCAN IA PAR PHOTOS & SUGGESTION DE PRIX */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.09) 0%, rgba(168, 85, 247, 0.09) 100%)',
+                border: '1px solid rgba(139, 92, 246, 0.35)',
+                borderRadius: '18px',
+                padding: '18px',
+                marginBottom: '22px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '24px' }}>✨</span>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--adm-text-h)' }}>
+                        Remplissage Magique & Suggestion de Prix par IA
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--adm-text-m)' }}>
+                        Sélectionnez une ou plusieurs photos : l&apos;IA détecte le produit, rédige la description et estime les prix de vente optimaux !
+                      </div>
+                    </div>
+                  </div>
+                  {prodFormImages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProdFormImages([]);
+                        setAiSuccessMessage('');
+                      }}
+                      style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--adm-card-border)', background: 'var(--adm-card-bg)', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      Effacer les photos ({prodFormImages.length})
+                    </button>
+                  )}
+                </div>
+
+                {/* GALERIE DES PHOTOS DU PRODUIT */}
+                {prodFormImages.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+                    {prodFormImages.map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          position: 'relative',
+                          aspectRatio: '1',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: idx === 0 ? '2px solid #8b5cf6' : '1px solid var(--adm-card-border)',
+                          background: 'var(--adm-card-bg)',
+                          boxShadow: idx === 0 ? '0 2px 8px rgba(139, 92, 246, 0.3)' : 'none'
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imgUrl} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        
+                        {/* Badge principale */}
+                        {idx === 0 ? (
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(139, 92, 246, 0.95))', color: '#fff', fontSize: '9px', fontWeight: 800, textAlign: 'center', padding: '4px 2px 2px' }}>
+                            ⭐ Couverture
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = [...prodFormImages];
+                              const [moved] = copy.splice(idx, 1);
+                              copy.unshift(moved);
+                              setProdFormImages(copy);
+                            }}
+                            title="Définir comme photo principale"
+                            style={{ position: 'absolute', bottom: 2, left: 2, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '9px', padding: '2px 4px', cursor: 'pointer' }}
+                          >
+                            ⭐
+                          </button>
+                        )}
+
+                        {/* Bouton supprimer */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProdFormImages(prodFormImages.filter((_, i) => i !== idx));
+                          }}
+                          style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                          title="Supprimer cette photo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ACTIONS : BOUTON MULTI-UPLOAD + BOUTON ANALYSE IA */}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'var(--adm-card-bg)',
+                      border: '1px dashed #8b5cf6',
+                      borderRadius: '12px',
+                      padding: '10px 16px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#8b5cf6',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>📷</span>
+                    <span>{prodFormImages.length > 0 ? '+ Ajouter d&apos;autres photos' : 'Sélectionner des photos (Multi-sélection)'}</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleMultiImageFiles}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    disabled={prodFormImages.length === 0 || isAiScanning}
+                    onClick={handleScanProductWithAi}
+                    style={{
+                      background: prodFormImages.length === 0 ? 'var(--adm-card-border)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '10px 20px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: prodFormImages.length === 0 || isAiScanning ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      opacity: prodFormImages.length === 0 || isAiScanning ? 0.6 : 1,
+                      boxShadow: prodFormImages.length > 0 && !isAiScanning ? '0 4px 14px rgba(139, 92, 246, 0.4)' : 'none'
+                    }}
+                  >
+                    {isAiScanning ? (
+                      <>
+                        <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                        <span>Analyse de {prodFormImages.length} photo(s) & estimation des prix...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>✨</span>
+                        <span>Analyser & Suggérer les prix {prodFormImages.length > 0 ? `(${prodFormImages.length} photos)` : ''}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {aiSuccessMessage && (
+                  <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '12px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>✅</span> <span>{aiSuccessMessage}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="admin-form-grid">
-                <div><label className="admin-label">Nom du produit</label><input name="name" className="admin-input" required placeholder="ex: Nike Dunk Low Retro" /></div>
-                <div><label className="admin-label">Marque</label><input name="brand" className="admin-input" required placeholder="ex: Nike, Adidas, Jacquemus" /></div>
-                <div><label className="admin-label">Prix de référence base (€)</label><input name="price" type="number" step="0.01" className="admin-input" required placeholder="129.90" /></div>
-                <div><label className="admin-label">Prix barré / Comparatif (€)</label><input name="originalPrice" type="number" step="0.01" className="admin-input" placeholder="159.00 (facultatif)" /></div>
+                <div><label className="admin-label">Nom du produit (FR)</label><input name="name" className="admin-input" required placeholder="ex: Nike Dunk Low Retro" value={prodFormName} onChange={e => setProdFormName(e.target.value)} /></div>
+                <div><label className="admin-label">Marque</label><input name="brand" className="admin-input" required placeholder="ex: Nike, Adidas, Jacquemus" value={prodFormBrand} onChange={e => setProdFormBrand(e.target.value)} /></div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="admin-label">Prix de référence base (€)</label>
+                    {prodFormPrice && <span style={{ fontSize: '10px', color: '#8b5cf6', fontWeight: 800 }}>✨ Suggéré par l&apos;IA</span>}
+                  </div>
+                  <input name="price" type="number" step="0.01" className="admin-input" required placeholder="129.90" value={prodFormPrice} onChange={e => setProdFormPrice(e.target.value)} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="admin-label">Prix barré / Comparatif (€)</label>
+                    {prodFormComparePrice && <span style={{ fontSize: '10px', color: '#8b5cf6', fontWeight: 800 }}>✨ Suggéré</span>}
+                  </div>
+                  <input name="originalPrice" type="number" step="0.01" className="admin-input" placeholder="159.00 (facultatif)" value={prodFormComparePrice} onChange={e => setProdFormComparePrice(e.target.value)} />
+                </div>
                 
                 {/* TARIFS SPÉCIFIQUES PAR PAYS */}
                 <div style={{ gridColumn: '1 / -1', background: 'var(--adm-card-border)', padding: '16px', borderRadius: '16px', border: '1px solid var(--adm-card-border)' }}>
@@ -1075,34 +1625,43 @@ export default function AdminDashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                     {/* Bénin */}
                     <div style={{ background: 'var(--adm-card-bg)', padding: '12px', borderRadius: '12px', border: '1px solid var(--adm-card-border)' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🇧🇯</span> <span>Bénin (FCFA)</span>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>🇧🇯</span> <span>Bénin (FCFA)</span>
+                        </div>
+                        {prodFormBeninPrice && <span style={{ fontSize: '10px', color: '#8b5cf6' }}>✨ Suggéré</span>}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <input name="locationPrice_benin" type="number" step="1" className="admin-input" placeholder="Prix Bénin FCFA (ex: 65000)" style={{ fontSize: '12px', padding: '8px 10px' }} />
-                        <input name="locationComparePrice_benin" type="number" step="1" className="admin-input" placeholder="Prix barré FCFA (ex: 85000)" style={{ fontSize: '11px', padding: '6px 10px' }} />
+                        <input name="locationPrice_benin" type="number" step="1" className="admin-input" placeholder="Prix Bénin FCFA (ex: 65000)" value={prodFormBeninPrice} onChange={e => setProdFormBeninPrice(e.target.value)} style={{ fontSize: '12px', padding: '8px 10px' }} />
+                        <input name="locationComparePrice_benin" type="number" step="1" className="admin-input" placeholder="Prix barré FCFA (ex: 85000)" value={prodFormBeninComparePrice} onChange={e => setProdFormBeninComparePrice(e.target.value)} style={{ fontSize: '11px', padding: '6px 10px' }} />
                       </div>
                     </div>
 
                     {/* France */}
                     <div style={{ background: 'var(--adm-card-bg)', padding: '12px', borderRadius: '12px', border: '1px solid var(--adm-card-border)' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🇫🇷</span> <span>France (€)</span>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>🇫🇷</span> <span>France (€)</span>
+                        </div>
+                        {prodFormFrancePrice && <span style={{ fontSize: '10px', color: '#8b5cf6' }}>✨ Suggéré</span>}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <input name="locationPrice_france" type="number" step="0.01" className="admin-input" placeholder="Prix France € (ex: 120)" style={{ fontSize: '12px', padding: '8px 10px' }} />
-                        <input name="locationComparePrice_france" type="number" step="0.01" className="admin-input" placeholder="Prix barré € (ex: 140)" style={{ fontSize: '11px', padding: '6px 10px' }} />
+                        <input name="locationPrice_france" type="number" step="0.01" className="admin-input" placeholder="Prix France € (ex: 120)" value={prodFormFrancePrice} onChange={e => setProdFormFrancePrice(e.target.value)} style={{ fontSize: '12px', padding: '8px 10px' }} />
+                        <input name="locationComparePrice_france" type="number" step="0.01" className="admin-input" placeholder="Prix barré € (ex: 140)" value={prodFormFranceComparePrice} onChange={e => setProdFormFranceComparePrice(e.target.value)} style={{ fontSize: '11px', padding: '6px 10px' }} />
                       </div>
                     </div>
 
                     {/* Belgique */}
                     <div style={{ background: 'var(--adm-card-bg)', padding: '12px', borderRadius: '12px', border: '1px solid var(--adm-card-border)' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🇧🇪</span> <span>Belgique (€)</span>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#0284c7', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>🇧🇪</span> <span>Belgique (€)</span>
+                        </div>
+                        {prodFormBelgiquePrice && <span style={{ fontSize: '10px', color: '#8b5cf6' }}>✨ Suggéré</span>}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <input name="locationPrice_belgique" type="number" step="0.01" className="admin-input" placeholder="Prix Belgique € (ex: 125)" style={{ fontSize: '12px', padding: '8px 10px' }} />
-                        <input name="locationComparePrice_belgique" type="number" step="0.01" className="admin-input" placeholder="Prix barré € (ex: 145)" style={{ fontSize: '11px', padding: '6px 10px' }} />
+                        <input name="locationPrice_belgique" type="number" step="0.01" className="admin-input" placeholder="Prix Belgique € (ex: 125)" value={prodFormBelgiquePrice} onChange={e => setProdFormBelgiquePrice(e.target.value)} style={{ fontSize: '12px', padding: '8px 10px' }} />
+                        <input name="locationComparePrice_belgique" type="number" step="0.01" className="admin-input" placeholder="Prix barré € (ex: 145)" value={prodFormBelgiqueComparePrice} onChange={e => setProdFormBelgiqueComparePrice(e.target.value)} style={{ fontSize: '11px', padding: '6px 10px' }} />
                       </div>
                     </div>
                   </div>
@@ -1110,7 +1669,13 @@ export default function AdminDashboard() {
 
                 <div>
                   <label className="admin-label">Catégorie (Rayon)</label>
-                  <select name="category" className="admin-select" required>
+                  <select
+                    name="category"
+                    className="admin-select"
+                    required
+                    value={prodFormCategory}
+                    onChange={e => setProdFormCategory(e.target.value)}
+                  >
                     <option value="shoes">👟 Chaussures & Sneakers</option>
                     <option value="clothing">👕 Vêtements & Prêt-à-porter</option>
                     <option value="bags">👜 Sacs & Maroquinerie</option>
@@ -1396,14 +1961,908 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div style={{ gridColumn: '1 / -1' }}><label className="admin-label">URL de l&apos;Image</label><input name="image" className="admin-input" placeholder="https://cdn.shopify.com/... ou /france_jersey_hero.jpg" /></div>
-                <div style={{ gridColumn: '1 / -1' }}><label className="admin-label">Description du produit</label><textarea name="description" className="admin-textarea" placeholder="Description détaillée du produit..." /></div>
+                {/* BADGE MARKETING */}
+                <div>
+                  <label className="admin-label">Badge Marketing</label>
+                  <select name="badge" className="admin-select" value={prodFormBadge} onChange={e => setProdFormBadge(e.target.value)}>
+                    <option value="NEW">✨ NOUVEAUTÉ (NEW)</option>
+                    <option value="HOT">🔥 TENDANCE (HOT)</option>
+                    <option value="LIMITED">⚡ ÉDITION LIMITÉE</option>
+                    <option value="PROMO">🏷️ PROMOTION</option>
+                    <option value="PREMIUM">👑 EXCLUSIF / LUXE</option>
+                  </select>
+                </div>
+
+                {/* GALERIE MULTI-PHOTOS DU PRODUIT */}
+                <div style={{ gridColumn: '1 / -1', background: 'var(--adm-card-border)', padding: '16px', borderRadius: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <label className="admin-label" style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--adm-text-h)' }}>
+                        📸 Galerie Photos du Produit ({prodFormImages.length} photo{prodFormImages.length > 1 ? 's' : ''})
+                      </label>
+                      <div style={{ fontSize: '11px', color: 'var(--adm-text-m)', marginTop: 2 }}>
+                        La première photo sert d&apos;image de couverture principale.
+                      </div>
+                    </div>
+                    {prodFormImages.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setProdFormImages([])}
+                        style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--adm-card-border)', background: 'var(--adm-card-bg)', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ❌ Tout effacer
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Aperçus miniatures */}
+                  {prodFormImages.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(75px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                      {prodFormImages.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            position: 'relative',
+                            aspectRatio: '1',
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            border: idx === 0 ? '2px solid #8b5cf6' : '1px solid var(--adm-card-border)',
+                            background: 'var(--adm-card-bg)'
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={imgUrl} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          
+                          {idx === 0 ? (
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(139, 92, 246, 0.95)', color: '#fff', fontSize: '8px', fontWeight: 800, textAlign: 'center', padding: '2px' }}>
+                              ⭐ Principale
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const copy = [...prodFormImages];
+                                const [moved] = copy.splice(idx, 1);
+                                copy.unshift(moved);
+                                setProdFormImages(copy);
+                              }}
+                              title="Définir comme photo principale"
+                              style={{ position: 'absolute', bottom: 2, left: 2, background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '9px', padding: '2px 4px', cursor: 'pointer' }}
+                            >
+                              ⭐
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setProdFormImages(prodFormImages.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Supprimer"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Ajout par URL ou par fichier */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <input
+                      className="admin-input"
+                      placeholder="Ajouter une image par URL (https://...)"
+                      value={urlImageInput}
+                      onChange={e => setUrlImageInput(e.target.value)}
+                      style={{ flex: 1, minWidth: '200px' }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (urlImageInput.trim()) {
+                            setProdFormImages(prev => [...prev, urlImageInput.trim()]);
+                            setUrlImageInput('');
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (urlImageInput.trim()) {
+                          setProdFormImages(prev => [...prev, urlImageInput.trim()]);
+                          setUrlImageInput('');
+                        }
+                      }}
+                      className="admin-btn admin-btn-outline"
+                      style={{ borderRadius: '12px', padding: '8px 14px', fontSize: '12px', fontWeight: 700 }}
+                    >
+                      + URL
+                    </button>
+                    <label className="admin-btn admin-btn-outline" style={{ cursor: 'pointer', borderRadius: '12px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                      📁 Importer photos
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleMultiImageFiles}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="admin-label" style={{ margin: 0 }}>Description du produit</label>
+                    {prodFormDescription && (
+                      <span style={{ fontSize: '11px', color: '#8b5cf6', fontWeight: 700 }}>
+                        ✨ Rédigée par l&apos;IA (modifiable)
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    name="description"
+                    className="admin-textarea"
+                    rows={4}
+                    placeholder="Description détaillée du produit..."
+                    value={prodFormDescription}
+                    onChange={e => setProdFormDescription(e.target.value)}
+                  />
+                </div>
               </div>
               <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button type="button" className="admin-btn admin-btn-outline" onClick={close}>Annuler</button>
                 <button type="submit" className="admin-btn admin-btn-primary">Ajouter le produit</button>
               </div>
             </form>
+          )}
+
+          {/* MODAL IMPORT MULTI-PRODUITS EN MASSE PAR IA */}
+          {modal === 'batchAddProducts' && (
+            <div>
+              {/* Entête d'explication */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.09) 0%, rgba(168, 85, 247, 0.09) 100%)',
+                border: '1px solid rgba(139, 92, 246, 0.35)',
+                borderRadius: '16px',
+                padding: '16px 20px',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--adm-text-h)' }}>
+                      ⚡ Importez plusieurs articles à partir de vos photos
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--adm-text-m)', marginTop: 2 }}>
+                      Chargez vos photos (1 photo par article), l&apos;IA détecte les marques, modèles, catégories et propose automatiquement les prix (€ et FCFA Bénin).
+                    </div>
+                  </div>
+
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'var(--adm-card-bg)',
+                      border: '1px dashed #8b5cf6',
+                      borderRadius: '12px',
+                      padding: '10px 18px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      color: '#8b5cf6',
+                      cursor: isBatchScanning ? 'not-allowed' : 'pointer',
+                      opacity: isBatchScanning ? 0.5 : 1
+                    }}
+                  >
+                    <span>📷</span>
+                    <span>{batchPhotos.length > 0 ? '+ Ajouter d&apos;autres photos' : 'Choisir les photos (Multi-sélection)'}</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      disabled={isBatchScanning}
+                      onChange={handleBatchPhotoFiles}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* État 1 : Photos chargées mais pas encore scannées */}
+              {batchPhotos.length > 0 && batchProducts.length === 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--adm-text-h)' }}>
+                      📸 {batchPhotos.length} photo(s) prête(s) pour l&apos;analyse
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBatchPhotos([])}
+                      style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      Effacer tout
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '10px', maxHeight: '200px', overflowY: 'auto', padding: '10px', background: 'var(--adm-card-border)', borderRadius: '12px' }}>
+                    {batchPhotos.map((img, i) => (
+                      <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--adm-card-border)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => setBatchPhotos(batchPhotos.filter((_, idx) => idx !== i))}
+                          style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={handleStartBatchScan}
+                      style={{
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '14px',
+                        padding: '12px 28px',
+                        fontSize: '14px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        boxShadow: '0 4px 16px rgba(139, 92, 246, 0.4)'
+                      }}
+                    >
+                      <span>✨</span>
+                      <span>Lancer l&apos;analyse IA des {batchPhotos.length} articles</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* État 2 : Progression du scan */}
+              {isBatchScanning && (
+                <div style={{ padding: '20px', background: 'var(--adm-card-border)', borderRadius: '16px', marginBottom: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--adm-text-h)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #8b5cf6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span>Analyse IA en cours : {batchProgress.current} / {batchProgress.total} article(s)...</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--adm-card-bg)', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--adm-card-border)' }}>
+                    <div
+                      style={{
+                        width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* État 3 : Produits scannés avec fiches complètes */}
+              {batchProducts.length > 0 && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--adm-text-h)' }}>
+                        📋 Fiches Produits Générées par l&apos;IA ({batchProducts.filter(p => p.status === 'done').length} prête{batchProducts.filter(p => p.status === 'done').length > 1 ? 's' : ''} sur {batchProducts.length})
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--adm-text-m)', marginTop: 2 }}>
+                        Chaque article dispose de sa description complète, tous ses tarifs (Euros & FCFA), tailles et couleurs détectées.
+                      </div>
+                    </div>
+
+                    {/* Switch vue fiches / tableau */}
+                    <div style={{ display: 'inline-flex', background: 'var(--adm-card-border)', padding: '3px', borderRadius: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setBatchViewMode('cards')}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: batchViewMode === 'cards' ? 'var(--adm-card-bg)' : 'transparent',
+                          color: batchViewMode === 'cards' ? 'var(--adm-text-h)' : 'var(--adm-text-m)',
+                          fontWeight: 800,
+                          fontSize: '11px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🎴 Vue Fiches Complètes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBatchViewMode('table')}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: batchViewMode === 'table' ? 'var(--adm-card-bg)' : 'transparent',
+                          color: batchViewMode === 'table' ? 'var(--adm-text-h)' : 'var(--adm-text-m)',
+                          fontWeight: 800,
+                          fontSize: '11px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📊 Vue Tableau
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* VUE 1 : FICHES COMPLÈTES (RICHE) */}
+                  {batchViewMode === 'cards' && (
+                    <div style={{ maxHeight: '520px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {batchProducts.map((item, idx) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            background: 'var(--adm-card-bg)',
+                            border: item.status === 'error' ? '1px solid #ef4444' : '1px solid var(--adm-card-border)',
+                            borderRadius: '16px',
+                            padding: '18px',
+                            marginBottom: '16px',
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                            opacity: item.status === 'scanning' ? 0.75 : 1
+                          }}
+                        >
+                          {/* Haut de la fiche */}
+                          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '14px' }}>
+                            {/* Photo */}
+                            <div style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '12px', overflow: 'hidden', border: '2px solid #8b5cf6', flexShrink: 0 }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <button
+                                type="button"
+                                onClick={() => setBatchProducts(batchProducts.filter((_, i) => i !== idx))}
+                                style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                title="Supprimer cet article"
+                              >
+                                ×
+                              </button>
+                            </div>
+
+                            {/* Titre, Marque, Catégorie, Badge */}
+                            <div style={{ flex: 1, minWidth: '240px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 800, background: '#8b5cf6', color: '#fff', padding: '3px 8px', borderRadius: '8px' }}>
+                                  #{idx + 1}
+                                </span>
+                                <input
+                                  className="admin-input"
+                                  value={item.name}
+                                  placeholder="Nom commercial du produit"
+                                  disabled={item.status === 'scanning'}
+                                  onChange={e => {
+                                    const copy = [...batchProducts];
+                                    copy[idx].name = e.target.value;
+                                    setBatchProducts(copy);
+                                  }}
+                                  style={{ fontWeight: 800, fontSize: '13px', padding: '6px 10px', borderRadius: '8px', flex: 1 }}
+                                />
+                                {item.status === 'done' && (
+                                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                    ✓ Prêt
+                                  </span>
+                                )}
+                                {item.status === 'scanning' && (
+                                  <span style={{ fontSize: '11px', color: '#8b5cf6', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                    ⚡ Analyse...
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--adm-text-m)', fontWeight: 700 }}>Marque</label>
+                                  <input
+                                    className="admin-input"
+                                    value={item.brand}
+                                    disabled={item.status === 'scanning'}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].brand = e.target.value;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '6px 8px', borderRadius: '8px' }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--adm-text-m)', fontWeight: 700 }}>Rayon (Catégorie)</label>
+                                  <select
+                                    className="admin-select"
+                                    value={item.category}
+                                    disabled={item.status === 'scanning'}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].category = e.target.value;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '6px 8px', borderRadius: '8px' }}
+                                  >
+                                    <option value="shoes">👟 Chaussures</option>
+                                    <option value="clothing">👕 Vêtements</option>
+                                    <option value="bags">👜 Sacs</option>
+                                    <option value="watches">⌚ Montres</option>
+                                    <option value="jewelry">💍 Bijoux</option>
+                                    <option value="accessories">🕶️ Accessoires</option>
+                                    <option value="hats">🧢 Chapeaux</option>
+                                    <option value="socks">🧦 Chaussettes</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--adm-text-m)', fontWeight: 700 }}>Badge Marketing</label>
+                                  <select
+                                    className="admin-select"
+                                    value={item.badge || 'NEW'}
+                                    disabled={item.status === 'scanning'}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].badge = e.target.value;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '6px 8px', borderRadius: '8px' }}
+                                  >
+                                    <option value="NEW">✨ NOUVEAUTÉ</option>
+                                    <option value="HOT">🔥 TENDANCE</option>
+                                    <option value="LIMITED">⚡ ÉDITION LIMITÉE</option>
+                                    <option value="PROMO">🏷️ PROMOTION</option>
+                                    <option value="PREMIUM">👑 EXCLUSIF / LUXE</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--adm-text-m)', fontWeight: 700 }}>Stock initial</label>
+                                  <input
+                                    type="number"
+                                    className="admin-input"
+                                    value={item.stock ?? 50}
+                                    disabled={item.status === 'scanning'}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].stock = parseInt(e.target.value) || 0;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '6px 8px', borderRadius: '8px' }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* GRILLE COMPLÈTE DES TARIFS PERSONNALISÉS (EUROS & FCFA BÉNIN & EUROPE) */}
+                          <div style={{ background: 'var(--adm-card-border)', padding: '12px', borderRadius: '12px', marginBottom: '12px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--adm-text-h)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>🌍 Tarifs suggérés par l&apos;IA (prix de vente & prix barrés)</span>
+                              <span style={{ fontSize: '10px', color: '#8b5cf6', fontWeight: 700 }}>✨ Modifiables à volonté</span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                              {/* Prix Base € */}
+                              <div style={{ background: 'var(--adm-card-bg)', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--adm-card-border)' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>🇪🇺 Base (€)</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    className="admin-input"
+                                    placeholder="Prix €"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.price || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].price = parseFloat(e.target.value) || 0;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '4px 6px' }}
+                                  />
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    className="admin-input"
+                                    placeholder="Barré €"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.comparePrice || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].comparePrice = parseFloat(e.target.value) || undefined;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '10px', padding: '4px 6px' }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Prix Bénin FCFA */}
+                              <div style={{ background: 'var(--adm-card-bg)', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--adm-card-border)' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>🇧🇯 Bénin (FCFA)</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <input
+                                    type="number"
+                                    step="500"
+                                    className="admin-input"
+                                    placeholder="Prix FCFA"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.locationPrice_benin || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].locationPrice_benin = parseFloat(e.target.value) || 0;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '4px 6px' }}
+                                  />
+                                  <input
+                                    type="number"
+                                    step="500"
+                                    className="admin-input"
+                                    placeholder="Barré FCFA"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.locationComparePrice_benin || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].locationComparePrice_benin = parseFloat(e.target.value) || undefined;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '10px', padding: '4px 6px' }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Prix France € */}
+                              <div style={{ background: 'var(--adm-card-bg)', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--adm-card-border)' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>🇫🇷 France (€)</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    className="admin-input"
+                                    placeholder="Prix France €"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.locationPrice_france || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].locationPrice_france = parseFloat(e.target.value) || undefined;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '4px 6px' }}
+                                  />
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    className="admin-input"
+                                    placeholder="Barré France €"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.locationComparePrice_france || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].locationComparePrice_france = parseFloat(e.target.value) || undefined;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '10px', padding: '4px 6px' }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Prix Belgique € */}
+                              <div style={{ background: 'var(--adm-card-bg)', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--adm-card-border)' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>🇧🇪 Belgique (€)</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    className="admin-input"
+                                    placeholder="Prix Belgique €"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.locationPrice_belgique || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].locationPrice_belgique = parseFloat(e.target.value) || undefined;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '11px', padding: '4px 6px' }}
+                                  />
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    className="admin-input"
+                                    placeholder="Barré Belgique €"
+                                    disabled={item.status === 'scanning'}
+                                    value={item.locationComparePrice_belgique || ''}
+                                    onChange={e => {
+                                      const copy = [...batchProducts];
+                                      copy[idx].locationComparePrice_belgique = parseFloat(e.target.value) || undefined;
+                                      setBatchProducts(copy);
+                                    }}
+                                    style={{ fontSize: '10px', padding: '4px 6px' }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* VARIANTES & COULEURS DU PRODUIT */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                            {/* Pointures ou Tailles */}
+                            <div style={{ background: 'var(--adm-card-border)', padding: '10px 12px', borderRadius: '12px' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--adm-text-h)', marginBottom: '6px' }}>
+                                📏 Variantes & Tailles ({item.sizes?.length || 0})
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {item.sizes && item.sizes.length > 0 ? (
+                                  item.sizes.map((s, sIdx) => (
+                                    <span key={sIdx} style={{ fontSize: '10px', fontWeight: 800, background: 'var(--adm-card-bg)', border: '1px solid #8b5cf6', color: '#8b5cf6', padding: '3px 8px', borderRadius: '6px' }}>
+                                      {s}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span style={{ fontSize: '11px', color: 'var(--adm-text-m)' }}>Taille unique</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Couleurs */}
+                            <div style={{ background: 'var(--adm-card-border)', padding: '10px 12px', borderRadius: '12px' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--adm-text-h)', marginBottom: '6px' }}>
+                                🎨 Nuancier & Couleurs ({item.colors?.length || 0})
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {item.colors && item.colors.length > 0 ? (
+                                  item.colors.map((c, cIdx) => (
+                                    <span key={cIdx} style={{ fontSize: '10px', fontWeight: 700, background: 'var(--adm-card-bg)', border: '1px solid var(--adm-card-border)', padding: '3px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1' }} />
+                                      {c}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span style={{ fontSize: '11px', color: 'var(--adm-text-m)' }}>Standard</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* DESCRIPTION DU PRODUIT RÉDIGÉE PAR L'IA */}
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--adm-text-h)', margin: 0 }}>
+                                Description du produit
+                              </label>
+                              <span style={{ fontSize: '10px', color: '#8b5cf6', fontWeight: 700 }}>
+                                ✨ Rédigée par l&apos;IA (modifiable)
+                              </span>
+                            </div>
+                            <textarea
+                              className="admin-textarea"
+                              rows={3}
+                              value={item.description}
+                              disabled={item.status === 'scanning'}
+                              placeholder="Description générée par l'IA..."
+                              onChange={e => {
+                                const copy = [...batchProducts];
+                                copy[idx].description = e.target.value;
+                                setBatchProducts(copy);
+                              }}
+                              style={{ fontSize: '11px', lineHeight: '1.4' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* VUE 2 : TABLEAU SYNTHÉTIQUE */}
+                  {batchViewMode === 'table' && (
+                    <div style={{ overflowX: 'auto', maxHeight: '420px', overflowY: 'auto', border: '1px solid var(--adm-card-border)', borderRadius: '14px', background: 'var(--adm-card-bg)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--adm-card-border)', borderBottom: '1px solid var(--adm-card-border)', position: 'sticky', top: 0, zIndex: 2 }}>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--adm-text-m)', width: '60px' }}>Photo</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--adm-text-m)', minWidth: '180px' }}>Nom du produit</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--adm-text-m)', width: '110px' }}>Marque</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--adm-text-m)', width: '130px' }}>Catégorie</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--adm-text-m)', width: '100px' }}>Prix (€)</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800, color: 'var(--adm-text-m)', width: '130px' }}>Bénin (FCFA)</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: 'var(--adm-text-m)', width: '60px' }}>État</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: 'var(--adm-text-m)', width: '40px' }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {batchProducts.map((item, idx) => (
+                            <tr key={item.id} style={{ borderBottom: '1px solid var(--adm-card-border)', opacity: item.status === 'scanning' ? 0.7 : 1 }}>
+                              <td style={{ padding: '8px 12px' }}>
+                                <div style={{ width: '46px', height: '46px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--adm-card-border)' }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                <input
+                                  className="admin-input"
+                                  value={item.name}
+                                  disabled={item.status === 'scanning'}
+                                  onChange={e => {
+                                    const updated = [...batchProducts];
+                                    updated[idx].name = e.target.value;
+                                    setBatchProducts(updated);
+                                  }}
+                                  style={{ fontSize: '12px', padding: '6px 10px', borderRadius: '8px' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                <input
+                                  className="admin-input"
+                                  value={item.brand}
+                                  disabled={item.status === 'scanning'}
+                                  onChange={e => {
+                                    const updated = [...batchProducts];
+                                    updated[idx].brand = e.target.value;
+                                    setBatchProducts(updated);
+                                  }}
+                                  style={{ fontSize: '12px', padding: '6px 8px', borderRadius: '8px' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                <select
+                                  className="admin-select"
+                                  value={item.category}
+                                  disabled={item.status === 'scanning'}
+                                  onChange={e => {
+                                    const updated = [...batchProducts];
+                                    updated[idx].category = e.target.value;
+                                    setBatchProducts(updated);
+                                  }}
+                                  style={{ fontSize: '11px', padding: '6px 8px', borderRadius: '8px' }}
+                                >
+                                  <option value="shoes">👟 Chaussures</option>
+                                  <option value="clothing">👕 Vêtements</option>
+                                  <option value="bags">👜 Sacs</option>
+                                  <option value="watches">⌚ Montres</option>
+                                  <option value="jewelry">💍 Bijoux</option>
+                                  <option value="accessories">🕶️ Accessoires</option>
+                                  <option value="hats">🧢 Chapeaux</option>
+                                </select>
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  className="admin-input"
+                                  value={item.price || ''}
+                                  disabled={item.status === 'scanning'}
+                                  onChange={e => {
+                                    const updated = [...batchProducts];
+                                    updated[idx].price = parseFloat(e.target.value) || 0;
+                                    setBatchProducts(updated);
+                                  }}
+                                  style={{ fontSize: '12px', padding: '6px 8px', borderRadius: '8px' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                <input
+                                  type="number"
+                                  step="500"
+                                  className="admin-input"
+                                  value={item.locationPrice_benin || ''}
+                                  disabled={item.status === 'scanning'}
+                                  onChange={e => {
+                                    const updated = [...batchProducts];
+                                    updated[idx].locationPrice_benin = parseFloat(e.target.value) || 0;
+                                    setBatchProducts(updated);
+                                  }}
+                                  style={{ fontSize: '12px', padding: '6px 8px', borderRadius: '8px' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                {item.status === 'pending' && <span style={{ color: 'var(--adm-text-m)', fontSize: '11px' }}>⏳ Attente</span>}
+                                {item.status === 'scanning' && <span style={{ color: '#8b5cf6', fontSize: '11px', fontWeight: 700 }}>⚡ Scan...</span>}
+                                {item.status === 'done' && <span style={{ color: '#10b981', fontSize: '11px', fontWeight: 800 }}>✓ Prêt</span>}
+                                {item.status === 'error' && <span style={{ color: '#ef4444', fontSize: '11px' }} title={item.error}>❌ Erreur</span>}
+                              </td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setBatchProducts(batchProducts.filter((_, i) => i !== idx))}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}
+                                  title="Retirer ce produit du lot"
+                                >
+                                  🗑️
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Actions de bas de page */}
+                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-outline"
+                      onClick={close}
+                      style={{ borderRadius: '12px', padding: '10px 20px' }}
+                    >
+                      Annuler
+                    </button>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-outline"
+                        onClick={handleStartBatchScan}
+                        disabled={isBatchScanning}
+                        style={{ borderRadius: '12px', padding: '10px 18px', fontSize: '12px', fontWeight: 700 }}
+                      >
+                        🔄 Re-scanner tout
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleImportAllBatch}
+                        disabled={isBatchScanning || batchProducts.filter(p => p.status === 'done').length === 0}
+                        style={{
+                          background: batchProducts.filter(p => p.status === 'done').length === 0 ? 'var(--adm-card-border)' : '#10b981',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '12px',
+                          padding: '10px 24px',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          cursor: isBatchScanning || batchProducts.filter(p => p.status === 'done').length === 0 ? 'not-allowed' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: batchProducts.filter(p => p.status === 'done').length > 0 ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none'
+                        }}
+                      >
+                        <span>🚀</span>
+                        <span>Importer les {batchProducts.filter(p => p.status === 'done').length} produits dans la boutique</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {batchPhotos.length === 0 && batchProducts.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--adm-card-border)', borderRadius: '16px' }}>
+                  <div style={{ fontSize: '36px', marginBottom: '10px' }}>📸</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--adm-text-h)', marginBottom: '4px' }}>
+                    Aucune photo sélectionnée
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--adm-text-m)', marginBottom: '16px' }}>
+                    Sélectionnez jusqu&apos;à 20 photos en une seule fois pour lancer l&apos;ajout groupé.
+                  </div>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      color: '#fff',
+                      borderRadius: '12px',
+                      padding: '10px 22px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>📁</span>
+                    <span>Sélectionner plusieurs photos</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleBatchPhotoFiles}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           )}
 
           {/* EDIT PRODUCT MODAL */}
@@ -2633,11 +4092,47 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="admin-btn admin-btn-primary" onClick={() => {
-              setSelectedSizes(['39', '40', '41', '42', '43', '44']);
-              setSelectedColors(['Noir', 'Blanc']);
-              setModal('addProduct');
-            }} style={{ borderRadius: '12px', padding: '10px 20px', fontWeight: 700 }}>
+            <button
+              className="admin-btn"
+              onClick={openBatchModal}
+              style={{
+                borderRadius: '12px',
+                padding: '10px 18px',
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
+                color: '#ffffff',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
+                cursor: 'pointer'
+              }}
+            >
+              <span>⚡</span>
+              <span>Import Multi-Produits IA</span>
+            </button>
+            <button
+              className="admin-btn"
+              onClick={openAddProductModal}
+              style={{
+                borderRadius: '12px',
+                padding: '10px 18px',
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                color: '#ffffff',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
+                cursor: 'pointer'
+              }}
+            >
+              <span>✨</span>
+              <span>Ajouter par Photo IA</span>
+            </button>
+            <button className="admin-btn admin-btn-primary" onClick={openAddProductModal} style={{ borderRadius: '12px', padding: '10px 20px', fontWeight: 700 }}>
               + Nouveau produit
             </button>
             <button className="admin-btn admin-btn-outline" onClick={() => setShowCsvImport(!showCsvImport)} style={{ borderRadius: '12px', padding: '10px 18px', fontWeight: 600 }}>
@@ -4425,21 +5920,54 @@ export default function AdminDashboard() {
                 Retrouvez les coordonnées (WhatsApp, Téléphone, Email) des clients ayant abandonné le guichet de paiement ou dont la transaction a échoué. Relancez-les en 1-clic pour convertir vos ventes.
               </p>
             </div>
-            {recovered > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm('Voulez-vous archiver et nettoyer les abandons déjà récupérés ?')) {
-                    store.clearRecoveredCheckouts();
-                    showToast('Abandons récupérés archivés avec succès.');
-                  }
+                  store.addAbandonedCheckout({
+                    customerName: 'Akim Dossou',
+                    customerPhone: '+22997123456',
+                    customerEmail: 'akim.dossou@gmail.com',
+                    city: 'Cotonou',
+                    country: 'Bénin',
+                    product: {
+                      id: 'prod-test',
+                      name: 'Nike Dunk Low Retro Panda',
+                      image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=200&q=80',
+                      size: '42',
+                      price: 65000,
+                      currency: 'FCFA',
+                      quantity: 1,
+                    },
+                    totalAmount: 65000,
+                    currency: 'FCFA',
+                    status: 'PAYMENT_FAILED',
+                    step: 'PAYMENT_FAILED',
+                    failureReason: 'Paiement interrompu au guichet Mobile Money',
+                  });
+                  showToast('Panier abandonné de test créé ! Vous pouvez tester la relance WhatsApp.', 'success');
                 }}
                 className="admin-btn admin-btn-outline"
                 style={{ borderRadius: '20px', padding: '10px 18px', fontSize: '12px', fontWeight: 700 }}
               >
-                🧹 Nettoyer les récupérés
+                🧪 Créer un panier test
               </button>
-            )}
+              {recovered > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Voulez-vous archiver et nettoyer les abandons déjà récupérés ?')) {
+                      store.clearRecoveredCheckouts();
+                      showToast('Abandons récupérés archivés avec succès.');
+                    }
+                  }}
+                  className="admin-btn admin-btn-outline"
+                  style={{ borderRadius: '20px', padding: '10px 18px', fontSize: '12px', fontWeight: 700 }}
+                >
+                  🧹 Nettoyer les récupérés
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -4535,9 +6063,40 @@ export default function AdminDashboard() {
               <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--adm-text-h)', margin: '0 0 4px 0' }}>
                 Aucun abandon en attente de relance
               </h4>
-              <p style={{ fontSize: '13px', margin: 0 }}>
+              <p style={{ fontSize: '13px', margin: '0 0 16px 0' }}>
                 Tous vos prospects ont finalisé leurs achats ou ont déjà été relancés avec succès.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  store.addAbandonedCheckout({
+                    customerName: 'Akim Dossou',
+                    customerPhone: '+22997123456',
+                    customerEmail: 'akim.dossou@gmail.com',
+                    city: 'Cotonou',
+                    country: 'Bénin',
+                    product: {
+                      id: 'prod-test',
+                      name: 'Nike Dunk Low Retro Panda',
+                      image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=200&q=80',
+                      size: '42',
+                      price: 65000,
+                      currency: 'FCFA',
+                      quantity: 1,
+                    },
+                    totalAmount: 65000,
+                    currency: 'FCFA',
+                    status: 'PAYMENT_FAILED',
+                    step: 'PAYMENT_FAILED',
+                    failureReason: 'Paiement interrompu au guichet Mobile Money',
+                  });
+                  showToast('Panier abandonné de test créé ! Regardez le tableau ci-dessous.', 'success');
+                }}
+                className="admin-btn admin-btn-outline"
+                style={{ borderRadius: '20px', padding: '10px 20px', fontSize: '13px', fontWeight: 800, color: '#0284c7', borderColor: '#0284c7' }}
+              >
+                🧪 Créer un panier test pour voir le bouton WhatsApp
+              </button>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -8207,15 +9766,54 @@ export default function AdminDashboard() {
                 className="admin-input"
                 style={{ width: '220px', borderRadius: '12px', padding: '8px 14px', fontSize: '12px' }}
               />
+              <button
+                type="button"
+                className="admin-btn admin-btn-sm"
+                onClick={openBatchModal}
+                style={{
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>⚡</span>
+                <span>Import Multi-Produits IA</span>
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-sm"
+                onClick={openAddProductModal}
+                style={{
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>✨</span>
+                <span>Scan Photo IA</span>
+              </button>
               <button 
                 type="button"
                 className="admin-btn admin-btn-primary admin-btn-sm" 
-                onClick={() => {
-                  setEditingProduct(null);
-                  setSelectedSizes(['39', '40', '41', '42', '43', '44']);
-                  setSelectedColors(['Noir', 'Blanc']);
-                  setModal('addProduct');
-                }} 
+                onClick={openAddProductModal} 
                 style={{ borderRadius: '20px', padding: '8px 18px', fontSize: '12px', fontWeight: 700 }}
               >
                 + Nouveau Produit

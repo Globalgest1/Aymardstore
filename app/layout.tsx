@@ -45,11 +45,15 @@ export const metadata: Metadata = {
 import { Suspense } from 'react';
 import PixelProvider from '@/components/analytics/PixelProvider';
 
+import Script from 'next/script';
 import QuickBuyModal from '@/components/checkout/QuickBuyModal';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${plusJakartaSans.variable} ${outfit.variable}`}>
+      <head>
+        <Script src="https://leekpay.fr/js/leekpay.js" strategy="lazyOnload" />
+      </head>
       <body>
         <a href="#main-content" className="skip-to-content">Aller au contenu principal</a>
         <ProductsSync />

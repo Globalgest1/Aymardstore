@@ -687,6 +687,9 @@ export interface MerchantNotificationSettings {
   whatsappEnabled: boolean;
   whatsappPhoneNumber: string;
   whatsappWebhookUrl: string;
+  leekpayPublicKey?: string;
+  leekpaySecretKey?: string;
+  leekpayEnabled?: boolean;
   notifyOnNewOrder: boolean;
   notifyOnPayment: boolean;
   notifyOnNewUser: boolean;
@@ -701,6 +704,9 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantNotificationSettings = {
   whatsappEnabled: true,
   whatsappPhoneNumber: '+229 01 97 36 29 06',
   whatsappWebhookUrl: '',
+  leekpayPublicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
+  leekpaySecretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+  leekpayEnabled: true,
   notifyOnNewOrder: true,
   notifyOnPayment: true,
   notifyOnNewUser: true,
@@ -1271,6 +1277,7 @@ interface AppState {
   // Admin product actions
   setProducts: (products: Product[]) => void;
   addProduct: (product: Product) => void;
+  addProducts: (products: Product[]) => void;
   deleteProduct: (productId: string) => void;
   updateProduct: (productId: string, updates: Partial<Product>) => void;
   notifications: AppNotification[];
@@ -1822,6 +1829,17 @@ export const useAppStore = create<AppState>()(
       setProducts: (products) => set({ products }),
       addProduct: (product) => set((state) => {
         const nextProducts = [product, ...state.products];
+        if (typeof window !== 'undefined') {
+          fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ products: nextProducts }),
+          }).catch(() => {});
+        }
+        return { products: nextProducts };
+      }),
+      addProducts: (productsToAdd) => set((state) => {
+        const nextProducts = [...productsToAdd, ...state.products];
         if (typeof window !== 'undefined') {
           fetch('/api/products', {
             method: 'POST',
@@ -3104,7 +3122,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'aymard-store-storage',
-      version: 30,
+      version: 31,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
         if (state && state.products) {
@@ -3127,9 +3145,14 @@ export const useAppStore = create<AppState>()(
         }
       },
       migrate: (persistedState: any, version: number) => {
-        if (version < 30 && persistedState) {
-          // Sync with clean products and standardized sizes
-          persistedState.products = defaultProducts;
+        if (version < 31 && persistedState) {
+          // Sync with LeekPay integration & default settings
+          persistedState.merchantSettings = {
+            ...(persistedState.merchantSettings || DEFAULT_MERCHANT_SETTINGS),
+            leekpayPublicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
+            leekpaySecretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+            leekpayEnabled: true
+          };
         }
         if (version < 18 && persistedState) {
           persistedState.reviews = [];

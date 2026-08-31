@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAppStore, convertPrice, formatPrice, getProductPrice, getActiveLocation, formatAmount, Address, calculateBeninDelivery, calculatePointsEarned } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { trackPixelEvent } from '@/lib/pixel-tracker';
+import { openLeekPayCheckout } from '@/lib/leekpay';
 
 export default function CartPage() {
   const router = useRouter();
@@ -27,7 +28,9 @@ export default function CartPage() {
     promoCodes,
     detectedLocationId,
     locations,
-    subscribeToMarketing
+    subscribeToMarketing,
+    addAbandonedCheckout,
+    updateAbandonedCheckout
   } = useAppStore();
   
   const { t } = useTranslation(language);
@@ -35,6 +38,7 @@ export default function CartPage() {
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'LEEKPAY' | 'COD'>('LEEKPAY');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; type: 'percent' | 'fixed'; value: number } | null>(null);
   const [couponError, setCouponError] = useState('');
   
@@ -112,6 +116,103 @@ export default function CartPage() {
   const convertedTax = taxCostLocal;
   const convertedTotal = totalLocal;
 
+  const [abandonedCheckoutId, setAbandonedCheckoutId] = useState<string | null>(null);
+
+  // Capture automatique en direct dans le panier :
+  // Même si le client oublie d'appuyer sur le bouton "Passer commande" !
+  useEffect(() => {
+    if (!customPhone || customPhone.trim().length < 6 || cart.length === 0) return;
+
+    const timer = setTimeout(() => {
+      const firstItem = cart[0];
+      const pInfo = getProductPrice(firstItem.product, detectedLocationId);
+      const leadData = {
+        customerName: user?.name || (customStreet ? `Client (${customCity})` : 'Client Panier'),
+        customerEmail: user?.email || undefined,
+        customerPhone: customPhone,
+        city: customCity || undefined,
+        street: customStreet || undefined,
+        country: activeLoc.name,
+        product: {
+          id: firstItem.product.id,
+          name: cart.length > 1 ? `${firstItem.product.name_fr} (+${cart.length - 1} autres)` : firstItem.product.name_fr,
+          image: firstItem.product.images?.[0] || '',
+          size: firstItem.size,
+          color: firstItem.color,
+          price: pInfo.price,
+          currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'FCFA' | 'EUR',
+          quantity: firstItem.quantity,
+        },
+        discountCode: appliedCoupon?.code,
+        discountAmount: discountLocal,
+        shippingCost: shippingCostLocal,
+        totalAmount: totalLocal,
+        currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'FCFA' | 'EUR',
+        status: 'ABANDONED' as const,
+        step: 'CONTACT_ENTERED' as const,
+        notes: 'Coordonnées saisies dans le panier mais bouton non validé',
+      };
+
+      if (abandonedCheckoutId) {
+        updateAbandonedCheckout(abandonedCheckoutId, leadData);
+      } else {
+        const newId = addAbandonedCheckout(leadData);
+        setAbandonedCheckoutId(newId);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [customPhone, customCity, customStreet, cart, totalLocal, abandonedCheckoutId]);
+
+  // Capture de secours s'il quitte la page panier ou ferme le navigateur
+  useEffect(() => {
+    const handleCartExit = () => {
+      if (customPhone && customPhone.trim().length >= 6 && cart.length > 0) {
+        const firstItem = cart[0];
+        const pInfo = getProductPrice(firstItem.product, detectedLocationId);
+        const leadData = {
+          customerName: user?.name || (customStreet ? `Client (${customCity})` : 'Client Panier'),
+          customerEmail: user?.email || undefined,
+          customerPhone: customPhone,
+          city: customCity || undefined,
+          street: customStreet || undefined,
+          country: activeLoc.name,
+          product: {
+            id: firstItem.product.id,
+            name: cart.length > 1 ? `${firstItem.product.name_fr} (+${cart.length - 1} autres)` : firstItem.product.name_fr,
+            image: firstItem.product.images?.[0] || '',
+            size: firstItem.size,
+            color: firstItem.color,
+            price: pInfo.price,
+            currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'FCFA' | 'EUR',
+            quantity: firstItem.quantity,
+          },
+          discountCode: appliedCoupon?.code,
+          discountAmount: discountLocal,
+          shippingCost: shippingCostLocal,
+          totalAmount: totalLocal,
+          currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'FCFA' | 'EUR',
+          status: 'ABANDONED' as const,
+          step: 'CONTACT_ENTERED' as const,
+          notes: 'Session panier interrompue ou page fermée',
+        };
+        if (abandonedCheckoutId) {
+          updateAbandonedCheckout(abandonedCheckoutId, leadData);
+        } else {
+          const newId = addAbandonedCheckout(leadData);
+          setAbandonedCheckoutId(newId);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleCartExit);
+    document.addEventListener('visibilitychange', handleCartExit);
+    return () => {
+      window.removeEventListener('beforeunload', handleCartExit);
+      document.removeEventListener('visibilitychange', handleCartExit);
+    };
+  }, [customPhone, customCity, customStreet, cart, totalLocal, abandonedCheckoutId]);
+
   const getProductName = (p: typeof cart[0]['product']) => {
     if (language === 'en') return p.name_en;
     if (language === 'es') return p.name_es;
@@ -142,29 +243,27 @@ export default function CartPage() {
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
   };
-
   const handleCheckout = () => {
-    if (cart.length === 0) return;
-    
-    // STRICT REQUIREMENT: If not logged in, redirect to login with cart return URL
     if (!user) {
-      router.push('/auth/login?redirect=/cart');
+      router.push('/account');
       return;
     }
 
-    const orderNumber = 'AYM-' + Math.floor(100000 + Math.random() * 900000);
-    const trackingNumber = 'TRK-' + Math.floor(10000000 + Math.random() * 90000000);
-
-    const chosenAddr = selectedAddressId !== 'custom' && selectedAddressId !== 'new'
-      ? user.savedAddresses?.find(a => a.id === selectedAddressId)
+    const chosenAddr = selectedAddressId !== 'new' && selectedAddressId !== 'custom'
+      ? (user.savedAddresses || []).find(a => a.id === selectedAddressId)
       : null;
 
-    const finalFullName = chosenAddr?.fullName || user.name;
-    const finalStreet = chosenAddr?.street || customStreet;
-    const finalCity = chosenAddr?.city || customCity;
-    const finalZip = chosenAddr?.zipCode || customZip;
+    const finalFullName = chosenAddr?.fullName || user.name || 'Client AYMARD STORE';
+    const finalStreet = chosenAddr?.street || customStreet || 'Non précisée';
+    const finalCity = chosenAddr?.city || customCity || (activeLoc.id === 'benin' ? 'Cotonou' : 'Paris');
+    const finalZip = chosenAddr?.zipCode || customZip || '00000';
     const finalCountry = chosenAddr?.country || activeLoc.name;
-    const finalPhone = chosenAddr?.phone || customPhone;
+    const finalPhone = chosenAddr?.phone || customPhone || user.phone || '';
+
+    if (!finalPhone || finalPhone.length < 6) {
+      alert('Veuillez renseigner votre numéro de téléphone / WhatsApp pour la livraison');
+      return;
+    }
 
     // Automatically save address if requested
     if (saveAddressForFuture && finalStreet.trim()) {
@@ -197,75 +296,112 @@ export default function CartPage() {
       label: chosenAddr?.label || saveAddressLabel
     });
 
-    const newOrder = {
-      id: orderNumber,
-      orderNumber,
-      date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      customerEmail: user.email,
-      customerName: finalFullName || user.name,
-      customerPhone: finalPhone,
-      items: [...cart],
-      total: totalLocal,
-      discountApplied: discountLocal,
-      promoCodeUsed: appliedCoupon ? appliedCoupon.code : undefined,
-      currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'EUR' | 'FCFA',
-      status: 'PENDING' as const,
-      paymentStatus: 'UNPAID' as const,
-      paymentMethod: 'COD' as const,
-      trackingNumber,
-      shippingAddress: {
-        fullName: finalFullName,
-        street: finalStreet,
-        city: finalCity,
-        zipCode: finalZip,
-        country: finalCountry,
-        phone: finalPhone,
+    const finalizeCartOrder = async (isPaid: boolean = false, txData?: any) => {
+      const orderNumber = `AYM-${Date.now().toString().slice(-6)}`;
+      const trackingNumber = `TRK-BJ-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      const newOrder = {
+        id: orderNumber,
+        orderNumber,
+        date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        customerEmail: user.email,
+        customerName: finalFullName,
+        customerPhone: finalPhone,
+        items: [...cart],
+        total: totalLocal,
+        discountApplied: discountLocal,
+        promoCodeUsed: appliedCoupon ? appliedCoupon.code : undefined,
+        currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'EUR' | 'FCFA',
+        status: 'PENDING' as const,
+        paymentStatus: isPaid ? 'PAID' : 'UNPAID',
+        paymentMethod: isPaid ? 'LEEKPAY' : 'COD',
+        paymentTransactionId: isPaid ? (txData?.id || txData?.reference || txData?.custom_url || `tx_leekpay_${Date.now()}`) : 'COD_DELIVERY_PAYMENT',
+        trackingNumber,
+        shippingAddress: {
+          fullName: finalFullName,
+          street: finalStreet,
+          city: finalCity,
+          zipCode: finalZip,
+          country: finalCountry,
+          phone: finalPhone,
+        }
+      };
+
+      trackPixelEvent({
+        eventName: 'Purchase',
+        order_id: orderNumber,
+        value: totalLocal,
+        currency: activeLoc.currency === 'FCFA' ? 'XOF' : 'EUR',
+        num_items: cart.length,
+        content_ids: cart.map(i => i.product.id),
+        user_data: {
+          email: user.email,
+          firstName: user.name,
+          phone: finalPhone,
+          city: finalCity,
+          country: finalCountry
+        }
+      });
+
+      if (optInMarketing && user) {
+        subscribeToMarketing({
+          name: finalFullName,
+          email: user.email,
+          phone: finalPhone,
+          channels: ['WHATSAPP', 'EMAIL'],
+          source: 'CHECKOUT'
+        });
       }
+
+      addOrder(newOrder as any);
+      processOrderPointsAndReferral(newOrder as any);
+
+      // Notify Merchant on Telegram / Email / WhatsApp
+      const { merchantSettings } = useAppStore.getState();
+      fetch('/api/notify-merchant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'NEW_ORDER',
+          order: newOrder,
+          merchantSettings: merchantSettings
+        })
+      }).catch(err => console.error('Notify error:', err));
+
+      if (abandonedCheckoutId) {
+        updateAbandonedCheckout(abandonedCheckoutId, { status: 'RECOVERED' });
+      }
+
+      clearCart();
+      router.push('/account?tab=orders&success=true');
     };
 
-    trackPixelEvent({
-      eventName: 'Purchase',
-      order_id: orderNumber,
-      value: totalLocal,
-      currency: activeLoc.currency === 'FCFA' ? 'XOF' : 'EUR',
-      num_items: cart.length,
-      content_ids: cart.map(i => i.product.id),
-      user_data: {
-        email: user.email,
-        firstName: user.name,
-        phone: finalPhone,
-        city: finalCity,
-        country: finalCountry
-      }
-    });
-
-    if (optInMarketing && user) {
-      subscribeToMarketing({
-        name: finalFullName || user.name,
-        email: user.email,
-        phone: finalPhone || user.phone,
-        channels: ['WHATSAPP', 'EMAIL'],
-        source: 'CHECKOUT'
-      });
+    if (paymentMethod === 'COD') {
+      finalizeCartOrder(false);
+      return;
     }
 
-    addOrder(newOrder);
-    processOrderPointsAndReferral(newOrder);
+    // Launch LeekPay popup
+    const amountInFcfa = activeLoc.currency === 'FCFA' 
+      ? totalLocal 
+      : Math.round(totalLocal * (activeLoc.exchangeRate || 655.957));
 
-    // Notify Merchant on Telegram / Email / WhatsApp
-    const { merchantSettings } = useAppStore.getState();
-    fetch('/api/notify-merchant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'NEW_ORDER',
-        order: newOrder,
-        merchantSettings: merchantSettings
-      })
-    }).catch(err => console.error('Notify error:', err));
-
-    clearCart();
-    router.push('/account?tab=orders&success=true');
+    openLeekPayCheckout({
+      amount: amountInFcfa,
+      currency: 'XOF',
+      description: `Commande AYMARD STORE (${cart.length} article${cart.length > 1 ? 's' : ''})`,
+      customerEmail: user.email,
+      customerName: finalFullName,
+      onSuccess: (tx) => {
+        finalizeCartOrder(true, tx);
+      },
+      onCancel: () => {
+        console.log('Paiement LeekPay annulé');
+      },
+      onError: (err) => {
+        alert(err?.message || 'Erreur lors du traitement du paiement LeekPay');
+      }
+    });
   };
 
   if (cart.length === 0) {
@@ -832,6 +968,104 @@ export default function CartPage() {
                   Recevez les arrivages rares et réductions VIP par WhatsApp et Email. Désinscription en 1 clic.
                 </span>
               </label>
+            </div>
+
+                        {/* Mode de règlement */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                Mode de Paiement
+              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {/* LeekPay option */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('LEEKPAY')}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: paymentMethod === 'LEEKPAY' ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                    background: paymentMethod === 'LEEKPAY' ? '#f0f9ff' : '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#0284c7',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 900,
+                      fontSize: '14px'
+                    }}>
+                      ⚡
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '13px', color: '#09090b', display: 'block' }}>
+                        Mobile Money &amp; Carte (LeekPay)
+                      </strong>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        MTN MoMo, Moov, Celtiis, Visa, Mastercard
+                      </span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '10px', fontWeight: 800, background: '#0284c7', color: '#ffffff', padding: '2px 8px', borderRadius: '10px' }}>
+                    SÉCURISÉ
+                  </span>
+                </button>
+
+                {/* COD option */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('COD')}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: paymentMethod === 'COD' ? '2px solid #059669' : '1px solid #e2e8f0',
+                    background: paymentMethod === 'COD' ? '#f0fdf4' : '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#059669',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 900,
+                      fontSize: '14px'
+                    }}>
+                      💵
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '13px', color: '#09090b', display: 'block' }}>
+                        Paiement à la Livraison (Espèces)
+                      </strong>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        Réglez au coursier après réception du colis
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
 
             <button 
