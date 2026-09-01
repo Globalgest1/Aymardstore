@@ -105,10 +105,17 @@ export default function QuickBuyModal() {
     }
   }, [quickBuyProduct, user, activeLoc.id]);
 
-  if (!isOpen || !product) return null;
-
   // Price calculations
-  const priceInfo = getProductPrice(product, detectedLocationId);
+  const priceInfo = product ? getProductPrice(product, detectedLocationId) : {
+    price: 0,
+    comparePrice: 0,
+    currency: activeLoc.currency,
+    currencySymbol: activeLoc.currency,
+    formattedPrice: '',
+    formattedComparePrice: '',
+    isCustom: false,
+    location: activeLoc
+  };
   const unitPrice = priceInfo.price;
   const subtotal = unitPrice * quantity;
 
@@ -136,7 +143,7 @@ export default function QuickBuyModal() {
 
   // Capture lead / abandoned checkout on blur
   const recordOrUpdateLead = (step: 'CONTACT_ENTERED' | 'PAYMENT_OPENED' | 'PAYMENT_FAILED') => {
-    if (!phone && !email && !fullName) return;
+    if (!product || (!phone && !email && !fullName)) return;
 
     const leadData = {
       customerName: fullName || 'Client Anonyme',
@@ -178,6 +185,7 @@ export default function QuickBuyModal() {
   // Capture automatique en direct : dès que le client a saisi son numéro ou son nom,
   // même s'il oublie d'appuyer sur le bouton "Acheter" ou qu'il est distrait !
   useEffect(() => {
+    if (!isOpen || !product) return;
     if (!phone || phone.trim().length < 6) return;
     if (checkoutStep === 'SUCCESS') return;
 
@@ -186,10 +194,11 @@ export default function QuickBuyModal() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [phone, fullName, city, street, selectedSize, selectedColor, quantity, checkoutStep]);
+  }, [isOpen, product, phone, fullName, city, street, selectedSize, selectedColor, quantity, checkoutStep]);
 
   // Capture de secours s'il quitte la page, ferme l'onglet ou passe sur une autre application
   useEffect(() => {
+    if (!isOpen || !product) return;
     const handleAppExit = () => {
       if ((phone && phone.trim().length >= 6) || fullName) {
         if (checkoutStep !== 'SUCCESS') {
@@ -204,7 +213,7 @@ export default function QuickBuyModal() {
       window.removeEventListener('beforeunload', handleAppExit);
       document.removeEventListener('visibilitychange', handleAppExit);
     };
-  }, [phone, fullName, checkoutStep]);
+  }, [isOpen, product, phone, fullName, checkoutStep]);
 
   // Close modal and track abandonment if not paid
   const handleClose = () => {
@@ -298,15 +307,17 @@ export default function QuickBuyModal() {
 
       const data = await res.json();
 
-      if (!res.ok || !data.success || !data.checkout_url) {
+      const checkoutUrl = data.checkout_url || data.data?.checkout_url;
+
+      if (!res.ok || !data.success || !checkoutUrl) {
         throw new Error(data.message || 'Impossible d\'initialiser la session de paiement SasPay.');
       }
 
       // Pre-save order before redirecting to SasPay hosted checkout page
-      await handleConfirmPaymentSuccess(false, { id: data.id, reference: data.slug }, 'SASPAY', false);
+      await handleConfirmPaymentSuccess(false, { id: data.id || data.data?.id, reference: data.slug || data.data?.slug }, 'SASPAY', false);
 
       // Redirect client to SasPay hosted checkout page
-      window.location.href = data.checkout_url;
+      window.location.href = checkoutUrl;
     } catch (err: any) {
       console.error('[SasPay Launch Error]:', err);
       setIsProcessing(false);
@@ -408,7 +419,7 @@ export default function QuickBuyModal() {
         value: totalAmount,
         currency: activeLoc.currency === 'FCFA' ? 'XOF' : 'EUR',
         num_items: 1,
-        content_ids: [product.id],
+        content_ids: [product?.id || ''],
         user_data: {
           email: email || user?.email,
           firstName: fullName,
@@ -465,6 +476,8 @@ export default function QuickBuyModal() {
       setIsProcessing(false);
     }
   };
+
+  if (!isOpen || !product) return null;
 
   return (
     <div style={{
