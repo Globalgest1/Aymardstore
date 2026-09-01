@@ -32,6 +32,16 @@ export const metadata: Metadata = {
   title: 'Aymard Store | Mode, Accessoires & Plus',
   description: 'Aymard Store - Votre boutique en ligne pour la mode, les chaussures, sacs, bijoux, montres et accessoires. Livraison rapide partout dans le monde.',
   keywords: ['mode', 'chaussures', 'vêtements', 'bijoux', 'montres', 'sacs', 'accessoires', 'boutique en ligne'],
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   openGraph: {
     title: 'Aymard Store | Mode, Accessoires & Plus',
     description: 'Votre boutique en ligne pour la mode et les accessoires.',
