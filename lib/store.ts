@@ -138,22 +138,6 @@ export interface AbandonedCheckout {
   notes?: string;
 }
 
-export type PaymentGatewayType = 'LEEKPAY' | 'SASPAY';
-
-export interface SaspaySettings {
-  secretKey: string;
-  signingSecret?: string;
-  environment: 'test' | 'live';
-  enabled: boolean;
-}
-
-export const DEFAULT_SASPAY_SETTINGS: SaspaySettings = {
-  secretKey: 'sk_live_JxcC9tQm8u1OwnJa6Bl_lSOMj46L6q-q-i-fur797J8',
-  signingSecret: '',
-  environment: 'live',
-  enabled: true,
-};
-
 export interface MonerooSettings {
   publicKey?: string;
   secretKey: string;
@@ -1010,11 +994,11 @@ export const DEFAULT_PRODUCT_REVIEWS: ProductReview[] = [];
 export const DEFAULT_ABANDONED_CHECKOUTS: AbandonedCheckout[] = [];
 
 export const DEFAULT_MONEROO_SETTINGS: MonerooSettings = {
-  publicKey: '',
-  secretKey: '',
+  publicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
+  secretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
   appId: '',
   environment: 'live',
-  enabled: false
+  enabled: true
 };
 
 export interface GoogleSheetConfig {
@@ -1408,13 +1392,7 @@ interface AppState {
   deleteAbandonedCheckout: (id: string) => void;
   clearRecoveredCheckouts: () => void;
 
-  // Payment Gateway Settings (LeekPay & SasPay)
-  activePaymentGateway: PaymentGatewayType;
-  setActivePaymentGateway: (gateway: PaymentGatewayType) => void;
-  saspaySettings: SaspaySettings;
-  updateSaspaySettings: (settings: Partial<SaspaySettings>) => void;
-
-  // Moneroo (Deprecated)
+  // Moneroo & Payment Gateway Settings
   monerooSettings: MonerooSettings;
   updateMonerooSettings: (settings: Partial<MonerooSettings>) => void;
 
@@ -1454,8 +1432,6 @@ export const useAppStore = create<AppState>()(
       pointTransactions: DEFAULT_POINT_TRANSACTIONS,
       
       abandonedCheckouts: DEFAULT_ABANDONED_CHECKOUTS,
-      activePaymentGateway: 'LEEKPAY',
-      saspaySettings: DEFAULT_SASPAY_SETTINGS,
       monerooSettings: DEFAULT_MONEROO_SETTINGS,
       quickBuyProduct: null,
 
@@ -2716,21 +2692,34 @@ export const useAppStore = create<AppState>()(
         employeePayments: [],
         supplyOrders: []
       }),
-      clearAllMockData: () => set({
-        orders: [],
-        expenses: [],
-        clients: [],
-        suppliers: [],
-        supplyOrders: [],
-        employees: [],
-        employeePayments: [],
-        supportConversations: [],
-        reviews: [],
-        abandonedCheckouts: [],
-        marketingSubscribers: [],
-        broadcastLogs: [],
-        pointTransactions: []
-      }),
+      clearAllMockData: () => {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('aymard_user_session');
+          } catch {}
+        }
+        set({
+          orders: [],
+          expenses: [],
+          clients: [],
+          suppliers: [],
+          supplyOrders: [],
+          employees: [],
+          employeePayments: [],
+          supportConversations: [],
+          reviews: [],
+          abandonedCheckouts: [],
+          marketingSubscribers: [],
+          broadcastLogs: [],
+          pointTransactions: [],
+          cart: [],
+          favorites: [],
+          spentLoyaltyPoints: 0,
+          notifications: [],
+          currentConversationId: '',
+          quickBuyProduct: null
+        });
+      },
 
       // Support & Live Chat Actions
       startNewSupportConversation: (customerName, topic) => {
@@ -3136,12 +3125,6 @@ export const useAppStore = create<AppState>()(
         abandonedCheckouts: (state.abandonedCheckouts || []).filter(a => a.status !== 'RECOVERED')
       })),
 
-      setActivePaymentGateway: (gateway) => set({ activePaymentGateway: gateway }),
-
-      updateSaspaySettings: (settings) => set((state) => ({
-        saspaySettings: { ...(state.saspaySettings || DEFAULT_SASPAY_SETTINGS), ...settings }
-      })),
-
       updateMonerooSettings: (settings) => set((state) => ({
         monerooSettings: { ...(state.monerooSettings || DEFAULT_MONEROO_SETTINGS), ...settings }
       })),
@@ -3152,17 +3135,9 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'aymard-store-storage',
-      version: 31,
+      version: 32,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
-        if (state) {
-          if (!state.activePaymentGateway) {
-            state.activePaymentGateway = 'SASPAY';
-          }
-          if (!state.saspaySettings || !state.saspaySettings.secretKey) {
-            state.saspaySettings = DEFAULT_SASPAY_SETTINGS;
-          }
-        }
         if (state && state.products) {
           state.products = state.products.map(p => ({
             ...p,
@@ -3183,42 +3158,46 @@ export const useAppStore = create<AppState>()(
         }
       },
       migrate: (persistedState: any, version: number) => {
-        if (version < 31 && persistedState) {
-          // Sync with LeekPay integration & default settings
+        if (version < 32 && persistedState) {
+          // Total operational & test data reset for production deployment
+          persistedState.orders = [];
+          persistedState.abandonedCheckouts = [];
+          persistedState.clients = [];
+          persistedState.reviews = [];
+          persistedState.expenses = [];
+          persistedState.suppliers = [];
+          persistedState.supplyOrders = [];
+          persistedState.employees = [];
+          persistedState.employeePayments = [];
+          persistedState.supportConversations = [];
+          persistedState.marketingSubscribers = [];
+          persistedState.broadcastLogs = [];
+          persistedState.pointTransactions = [];
+          persistedState.cart = [];
+          persistedState.favorites = [];
+          persistedState.spentLoyaltyPoints = 0;
+          persistedState.notifications = [];
+          if (persistedState.homepageMedia) {
+            persistedState.homepageMedia.communityPhotos = [];
+          }
+          persistedState.monerooSettings = {
+            publicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
+            secretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+            appId: '',
+            environment: 'live',
+            enabled: true
+          };
           persistedState.merchantSettings = {
             ...(persistedState.merchantSettings || DEFAULT_MERCHANT_SETTINGS),
             leekpayPublicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
             leekpaySecretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
             leekpayEnabled: true
           };
-        }
-        if (version < 18 && persistedState) {
-          persistedState.reviews = [];
-          persistedState.abandonedCheckouts = [];
-          persistedState.marketingSubscribers = [];
-          persistedState.broadcastLogs = [];
-          persistedState.supportConversations = [];
-          persistedState.pointTransactions = [];
-          persistedState.expenses = [];
-          if (persistedState.homepageMedia) {
-            persistedState.homepageMedia.communityPhotos = [];
-          }
-          persistedState.clients = (persistedState.clients || []).filter(
-            (c: any) => c.email && !c.email.includes('example.com')
-          );
           if (!persistedState.products || persistedState.products.length === 0) {
             persistedState.products = defaultProducts;
           }
           if (!persistedState.blogPosts || persistedState.blogPosts.length === 0) {
             persistedState.blogPosts = DEFAULT_BLOG_POSTS;
-          }
-          if (persistedState.user) {
-            persistedState.user.savedAddresses = (persistedState.user.savedAddresses || []).filter(
-              (a: any) => a.id !== 'addr_1' && a.id !== 'addr_default'
-            );
-            if (!persistedState.user.referralCode && persistedState.user.email) {
-              persistedState.user.referralCode = generateReferralCode(persistedState.user.email, persistedState.user.name);
-            }
           }
         }
         return persistedState;
