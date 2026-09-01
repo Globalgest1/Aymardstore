@@ -1389,6 +1389,7 @@ export default function AdminDashboard() {
               <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', background: 'var(--adm-card-border)', padding: '4px', borderRadius: '14px' }}>
                 <button
                   type="button"
+                  onClick={() => setModal('addProduct')}
                   style={{
                     flex: 1,
                     padding: '9px 14px',
@@ -2119,6 +2120,55 @@ export default function AdminDashboard() {
           {/* MODAL IMPORT MULTI-PRODUITS EN MASSE PAR IA */}
           {modal === 'batchAddProducts' && (
             <div>
+              {/* SÉLECTEUR DE MODE D'AJOUT */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', background: 'var(--adm-card-border)', padding: '4px', borderRadius: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setModal('addProduct')}
+                  style={{
+                    flex: 1,
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--adm-text-m)',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>📦</span>
+                  <span>Produit Unique (Multi-photos)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openBatchModal}
+                  style={{
+                    flex: 1,
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'var(--adm-card-bg)',
+                    color: 'var(--adm-text-h)',
+                    fontWeight: 800,
+                    fontSize: '12px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>⚡</span>
+                  <span>Multi-Produits en Masse (Plusieurs articles)</span>
+                </button>
+              </div>
+
               {/* Entête d'explication */}
               <div style={{
                 background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.09) 0%, rgba(168, 85, 247, 0.09) 100%)',
