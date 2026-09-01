@@ -296,7 +296,12 @@ export default function CartPage() {
       label: chosenAddr?.label || saveAddressLabel
     });
 
-    const finalizeCartOrder = async (isPaid: boolean = false, txData?: any) => {
+    const finalizeCartOrder = async (
+      isPaid: boolean = false,
+      txData?: any,
+      gatewayUsed: string = 'LEEKPAY',
+      autoRedirect: boolean = true
+    ) => {
       const orderNumber = `AYM-${Date.now().toString().slice(-6)}`;
       const trackingNumber = `TRK-BJ-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -314,8 +319,8 @@ export default function CartPage() {
         currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'EUR' | 'FCFA',
         status: 'PENDING' as const,
         paymentStatus: isPaid ? 'PAID' : 'UNPAID',
-        paymentMethod: isPaid ? 'LEEKPAY' : 'COD',
-        paymentTransactionId: isPaid ? (txData?.id || txData?.reference || txData?.custom_url || `tx_leekpay_${Date.now()}`) : 'COD_DELIVERY_PAYMENT',
+        paymentMethod: isPaid ? gatewayUsed : 'COD',
+        paymentTransactionId: isPaid ? (txData?.id || txData?.reference || txData?.custom_url || `tx_${gatewayUsed.toLowerCase()}_${Date.now()}`) : 'COD_DELIVERY_PAYMENT',
         trackingNumber,
         shippingAddress: {
           fullName: finalFullName,
@@ -373,7 +378,9 @@ export default function CartPage() {
       }
 
       clearCart();
-      router.push('/account?tab=orders&success=true');
+      if (autoRedirect) {
+        router.push('/account?tab=orders&success=true');
+      }
     };
 
     if (paymentMethod === 'COD') {
@@ -381,11 +388,52 @@ export default function CartPage() {
       return;
     }
 
-    // Launch LeekPay popup
+    const { activePaymentGateway = 'LEEKPAY', saspaySettings } = useAppStore.getState();
+
     const amountInFcfa = activeLoc.currency === 'FCFA' 
       ? totalLocal 
       : Math.round(totalLocal * (activeLoc.exchangeRate || 655.957));
 
+    // If SasPay is the active gateway
+    if (activePaymentGateway === 'SASPAY') {
+      const orderNumber = `AYM-${Date.now().toString().slice(-6)}`;
+      fetch('/api/checkout/saspay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amountInFcfa,
+          currency: 'XOF',
+          description: `Commande AYMARD STORE (${cart.length} article${cart.length > 1 ? 's' : ''})`,
+          country: 'BJ',
+          customerEmail: user.email || 'client@aymardstore.com',
+          customerName: finalFullName,
+          customerPhone: finalPhone || '',
+          returnUrl: typeof window !== 'undefined' ? `${window.location.origin}/account?tab=orders&success=true&orderNum=${orderNumber}` : '',
+          secretKey: saspaySettings?.secretKey || undefined,
+          metadata: {
+            orderNumber,
+            customerPhone: finalPhone,
+            itemsCount: cart.length
+          }
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.checkout_url) {
+          finalizeCartOrder(true, { id: data.id, reference: data.slug }, 'SASPAY', false);
+          window.location.href = data.checkout_url;
+        } else {
+          alert(data.message || 'Impossible d\'initialiser la session de paiement SasPay.');
+        }
+      })
+      .catch(err => {
+        console.error('SasPay Cart Error:', err);
+        alert(err?.message || 'Erreur lors de la session SasPay');
+      });
+      return;
+    }
+
+    // Launch LeekPay popup
     openLeekPayCheckout({
       amount: amountInFcfa,
       currency: 'XOF',
@@ -393,7 +441,7 @@ export default function CartPage() {
       customerEmail: user.email,
       customerName: finalFullName,
       onSuccess: (tx) => {
-        finalizeCartOrder(true, tx);
+        finalizeCartOrder(true, tx, 'LEEKPAY', true);
       },
       onCancel: () => {
         console.log('Paiement LeekPay annulé');

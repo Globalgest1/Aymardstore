@@ -138,6 +138,22 @@ export interface AbandonedCheckout {
   notes?: string;
 }
 
+export type PaymentGatewayType = 'LEEKPAY' | 'SASPAY';
+
+export interface SaspaySettings {
+  secretKey: string;
+  signingSecret?: string;
+  environment: 'test' | 'live';
+  enabled: boolean;
+}
+
+export const DEFAULT_SASPAY_SETTINGS: SaspaySettings = {
+  secretKey: '',
+  signingSecret: '',
+  environment: 'live',
+  enabled: true,
+};
+
 export interface MonerooSettings {
   publicKey?: string;
   secretKey: string;
@@ -1392,7 +1408,13 @@ interface AppState {
   deleteAbandonedCheckout: (id: string) => void;
   clearRecoveredCheckouts: () => void;
 
-  // Moneroo & Payment Gateway Settings
+  // Payment Gateway Settings (LeekPay & SasPay)
+  activePaymentGateway: PaymentGatewayType;
+  setActivePaymentGateway: (gateway: PaymentGatewayType) => void;
+  saspaySettings: SaspaySettings;
+  updateSaspaySettings: (settings: Partial<SaspaySettings>) => void;
+
+  // Moneroo (Deprecated)
   monerooSettings: MonerooSettings;
   updateMonerooSettings: (settings: Partial<MonerooSettings>) => void;
 
@@ -1432,6 +1454,8 @@ export const useAppStore = create<AppState>()(
       pointTransactions: DEFAULT_POINT_TRANSACTIONS,
       
       abandonedCheckouts: DEFAULT_ABANDONED_CHECKOUTS,
+      activePaymentGateway: 'LEEKPAY',
+      saspaySettings: DEFAULT_SASPAY_SETTINGS,
       monerooSettings: DEFAULT_MONEROO_SETTINGS,
       quickBuyProduct: null,
 
@@ -3112,6 +3136,12 @@ export const useAppStore = create<AppState>()(
         abandonedCheckouts: (state.abandonedCheckouts || []).filter(a => a.status !== 'RECOVERED')
       })),
 
+      setActivePaymentGateway: (gateway) => set({ activePaymentGateway: gateway }),
+
+      updateSaspaySettings: (settings) => set((state) => ({
+        saspaySettings: { ...(state.saspaySettings || DEFAULT_SASPAY_SETTINGS), ...settings }
+      })),
+
       updateMonerooSettings: (settings) => set((state) => ({
         monerooSettings: { ...(state.monerooSettings || DEFAULT_MONEROO_SETTINGS), ...settings }
       })),
@@ -3125,6 +3155,14 @@ export const useAppStore = create<AppState>()(
       version: 31,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        if (state) {
+          if (!state.activePaymentGateway) {
+            state.activePaymentGateway = 'LEEKPAY';
+          }
+          if (!state.saspaySettings) {
+            state.saspaySettings = DEFAULT_SASPAY_SETTINGS;
+          }
+        }
         if (state && state.products) {
           state.products = state.products.map(p => ({
             ...p,

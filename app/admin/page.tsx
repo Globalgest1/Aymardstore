@@ -9367,139 +9367,327 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 💳 Passerelle de Paiement Direct Moneroo (Bénin MoMo & Cartes France / Belgique) */}
-      <div className="admin-card" style={{ padding: '28px', borderRadius: '24px', background: 'var(--adm-card-bg)', border: '1.5px solid rgba(2, 132, 199, 0.35)', boxShadow: '0 8px 24px rgba(2, 132, 199, 0.06)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      {/* 💳 Passerelles d'Encaissement Exclusives : LeekPay & SasPay */}
+      <div className="admin-card" style={{ padding: '30px', borderRadius: '24px', background: 'var(--adm-card-bg)', border: '1.5px solid rgba(139, 92, 246, 0.35)', boxShadow: '0 8px 30px rgba(139, 92, 246, 0.08)' }}>
+        {/* En-tête */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '24px' }}>💳</span>
+              <span style={{ fontSize: '26px' }}>💳</span>
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--adm-text-h)', margin: 0 }}>
-                  Passerelle de Paiement Moneroo (Mobile Money &amp; Cartes Bancaires)
+                <h3 style={{ fontSize: '19px', fontWeight: 800, color: 'var(--adm-text-h)', margin: 0 }}>
+                  Passerelles d&apos;Encaissement : LeekPay &amp; SasPay
                 </h3>
-                <span style={{ fontSize: '12px', color: '#0284c7', fontWeight: 700 }}>
-                  Couverture : Bénin 🇧🇯 (MTN MoMo, Moov Money, Celtiis Cash) + France 🇫🇷 &amp; Belgique 🇧🇪 (Cartes Visa/Mastercard 3D Secure)
+                <span style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: 700 }}>
+                  Mobile Money Bénin (MTN, Moov, Celtiis) + Afrique de l&apos;Ouest/Centre &amp; Cartes Bancaires (Visa/Mastercard)
                 </span>
               </div>
             </div>
-            <p style={{ fontSize: '13px', color: 'var(--adm-text-m)', margin: '6px 0 0 0', maxWidth: '680px' }}>
-              Configurez vos clés API Moneroo (<code>moneroo.io</code>) pour encaisser directement les règlements. Les commandes ne sont validées et notifiées que si l&apos;opérateur confirme le succès réel du paiement.
+            <p style={{ fontSize: '13px', color: 'var(--adm-text-m)', margin: '6px 0 0 0', maxWidth: '720px', lineHeight: 1.5 }}>
+              Gérez vos deux passerelles d&apos;encaissement exclusives. Basculez de l&apos;une à l&apos;autre en 1 clic selon votre préférence ou vos besoins de trésorerie.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: store.monerooSettings?.enabled ? 'rgba(16, 185, 129, 0.12)' : 'rgba(100, 116, 139, 0.12)', padding: '8px 16px', borderRadius: '20px', border: store.monerooSettings?.enabled ? '1px solid #10b981' : '1px solid var(--adm-card-border)' }}>
-              <input
-                type="checkbox"
-                checked={store.monerooSettings?.enabled ?? true}
-                onChange={e => store.updateMonerooSettings({ enabled: e.target.checked })}
-                style={{ width: '16px', height: '16px', accentColor: '#10b981' }}
-              />
-              <span style={{ fontSize: '12.5px', fontWeight: 800, color: store.monerooSettings?.enabled ? '#10b981' : 'var(--adm-text-m)' }}>
-                {store.monerooSettings?.enabled ? '🟢 Paiements Moneroo Actifs' : '⚪ Désactivé (Mode Vitrine)'}
-              </span>
-            </label>
+          {/* Sélecteur de passerelle active */}
+          <div style={{ background: 'var(--adm-card-border)', padding: '6px', borderRadius: '18px', display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                store.setActivePaymentGateway('LEEKPAY');
+                showToast('Passerelle active basculée sur LeekPay (🟢 Actif).', 'success');
+              }}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '14px',
+                border: 'none',
+                background: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '#10b981' : 'transparent',
+                color: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '#ffffff' : 'var(--adm-text-m)',
+                fontWeight: 800,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                boxShadow: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '0 2px 10px rgba(16,185,129,0.35)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>🟢</span>
+              <span>LeekPay {(store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '(Actif)' : ''}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                store.setActivePaymentGateway('SASPAY');
+                showToast('Passerelle active basculée sur SasPay (🟣 Actif).', 'success');
+              }}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '14px',
+                border: 'none',
+                background: store.activePaymentGateway === 'SASPAY' ? '#8b5cf6' : 'transparent',
+                color: store.activePaymentGateway === 'SASPAY' ? '#ffffff' : 'var(--adm-text-m)',
+                fontWeight: 800,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                boxShadow: store.activePaymentGateway === 'SASPAY' ? '0 2px 10px rgba(139,92,246,0.35)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>🟣</span>
+              <span>SasPay {store.activePaymentGateway === 'SASPAY' ? '(Actif)' : ''}</span>
+            </button>
           </div>
         </div>
 
-        <div className="admin-form-grid">
-          {/* Environment Mode Switch */}
-          <div style={{ gridColumn: '1 / -1', background: 'rgba(2, 132, 199, 0.05)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(2, 132, 199, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <strong style={{ fontSize: '13.5px', color: 'var(--adm-text-h)', display: 'block' }}>
-                Mode de Fonctionnement de la Passerelle
+        {/* Message d'état de la passerelle en direct */}
+        <div style={{
+          background: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(139, 92, 246, 0.08)',
+          border: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)',
+          borderRadius: '16px',
+          padding: '12px 18px',
+          marginBottom: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>
+              {(store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '⚡' : '🚀'}
+            </span>
+            <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--adm-text-h)' }}>
+              Passerelle actuellement active sur la boutique :{' '}
+              <strong style={{ color: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '#10b981' : '#8b5cf6' }}>
+                {(store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? 'LeekPay (Popup direct)' : 'SasPay (Session & Push hébergé)'}
               </strong>
-              <span style={{ fontSize: '12px', color: 'var(--adm-text-m)' }}>
-                En mode Sandbox (Test), utilisez des numéros et cartes de test sans débit réel. En mode Live (Production), les paiements réels sont encaissés sur votre compte Moneroo.
+            </span>
+          </div>
+          <span style={{ fontSize: '11.5px', color: 'var(--adm-text-m)' }}>
+            Tous les clients cliquant sur &quot;Acheter&quot; ou passant commande dans le panier seront encaissés via cette passerelle.
+          </span>
+        </div>
+
+        {/* Deux Blocs de Configuration : LeekPay & SasPay */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+          {/* CARTE LEEKPAY */}
+          <div style={{
+            background: 'var(--adm-card-border)',
+            padding: '22px',
+            borderRadius: '20px',
+            border: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '2px solid #10b981' : '1px solid var(--adm-card-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🟢</span>
+                <div>
+                  <strong style={{ fontSize: '15px', color: 'var(--adm-text-h)' }}>LeekPay</strong>
+                  <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', display: 'block' }}>leekpay.fr • Widget Popup</span>
+                </div>
+              </div>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.15)',
+                color: (store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '#10b981' : 'var(--adm-text-m)'
+              }}>
+                {(store.activePaymentGateway || 'LEEKPAY') === 'LEEKPAY' ? '✓ ENCAISSEMENT ACTIF' : 'EN VEILLE'}
               </span>
             </div>
 
+            <div>
+              <label className="admin-label">Clé Publique LeekPay (Public Key)</label>
+              <input
+                type="text"
+                className="admin-input"
+                value={store.merchantSettings?.leekpayPublicKey || ''}
+                onChange={e => store.updateMerchantSettings({ leekpayPublicKey: e.target.value.trim() })}
+                placeholder="pk_live_..."
+                style={{ borderRadius: '10px', fontFamily: 'monospace', fontSize: '12px' }}
+              />
+            </div>
+
+            <div>
+              <label className="admin-label">Clé Secrète LeekPay (Secret Key)</label>
+              <input
+                type="password"
+                className="admin-input"
+                value={store.merchantSettings?.leekpaySecretKey || ''}
+                onChange={e => store.updateMerchantSettings({ leekpaySecretKey: e.target.value.trim() })}
+                placeholder="sk_live_..."
+                style={{ borderRadius: '10px', fontFamily: 'monospace', fontSize: '12px' }}
+              />
+            </div>
+
+            <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  store.setActivePaymentGateway('LEEKPAY');
+                  showToast('LeekPay défini comme passerelle active !', 'success');
+                }}
+                className="admin-btn admin-btn-outline"
+                style={{ borderRadius: '12px', fontSize: '11.5px', fontWeight: 700 }}
+              >
+                Activer LeekPay
+              </button>
+
+              <button
+                type="button"
+                onClick={() => showToast('Configuration LeekPay sauvegardée avec succès !', 'success')}
+                className="admin-btn admin-btn-primary"
+                style={{ borderRadius: '12px', fontSize: '11.5px', fontWeight: 800 }}
+              >
+                💾 Sauvegarder
+              </button>
+            </div>
+          </div>
+
+          {/* CARTE SASPAY */}
+          <div style={{
+            background: 'var(--adm-card-border)',
+            padding: '22px',
+            borderRadius: '20px',
+            border: store.activePaymentGateway === 'SASPAY' ? '2px solid #8b5cf6' : '1px solid var(--adm-card-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🟣</span>
+                <div>
+                  <strong style={{ fontSize: '15px', color: 'var(--adm-text-h)' }}>SasPay</strong>
+                  <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', display: 'block' }}>saspay.me • docs.saspay.me</span>
+                </div>
+              </div>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: store.activePaymentGateway === 'SASPAY' ? 'rgba(139,92,246,0.15)' : 'rgba(100,116,139,0.15)',
+                color: store.activePaymentGateway === 'SASPAY' ? '#8b5cf6' : 'var(--adm-text-m)'
+              }}>
+                {store.activePaymentGateway === 'SASPAY' ? '✓ ENCAISSEMENT ACTIF' : 'EN VEILLE'}
+              </span>
+            </div>
+
+            {/* Switch Test / Live */}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => {
-                  store.updateMonerooSettings({ environment: 'sandbox' });
-                  showToast('Mode Moneroo basculé sur Sandbox (Test).');
+                  store.updateSaspaySettings({ environment: 'test' });
+                  showToast('SasPay basculé en mode Test (Sandbox).');
                 }}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '12px',
-                  border: store.monerooSettings?.environment === 'sandbox' ? '1.5px solid #f59e0b' : '1px solid var(--adm-card-border)',
-                  background: store.monerooSettings?.environment === 'sandbox' ? '#f59e0b' : 'var(--adm-card-bg)',
-                  color: store.monerooSettings?.environment === 'sandbox' ? '#ffffff' : 'var(--adm-text-h)',
-                  fontSize: '12px',
+                  flex: 1,
+                  padding: '6px 10px',
+                  borderRadius: '10px',
+                  border: store.saspaySettings?.environment === 'test' ? '1.5px solid #f59e0b' : '1px solid var(--adm-card-border)',
+                  background: store.saspaySettings?.environment === 'test' ? '#f59e0b' : 'var(--adm-card-bg)',
+                  color: store.saspaySettings?.environment === 'test' ? '#ffffff' : 'var(--adm-text-m)',
+                  fontSize: '11px',
                   fontWeight: 800,
                   cursor: 'pointer'
                 }}
               >
-                🧪 Mode Test (Sandbox)
+                🧪 Mode Test (sk_test_...)
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  store.updateMonerooSettings({ environment: 'live' });
-                  showToast('Mode Moneroo basculé sur Live (Production).');
+                  store.updateSaspaySettings({ environment: 'live' });
+                  showToast('SasPay basculé en mode Live (Production).');
                 }}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '12px',
-                  border: store.monerooSettings?.environment === 'live' ? '1.5px solid #10b981' : '1px solid var(--adm-card-border)',
-                  background: store.monerooSettings?.environment === 'live' ? '#10b981' : 'var(--adm-card-bg)',
-                  color: store.monerooSettings?.environment === 'live' ? '#ffffff' : 'var(--adm-text-h)',
-                  fontSize: '12px',
+                  flex: 1,
+                  padding: '6px 10px',
+                  borderRadius: '10px',
+                  border: store.saspaySettings?.environment === 'live' ? '1.5px solid #8b5cf6' : '1px solid var(--adm-card-border)',
+                  background: store.saspaySettings?.environment === 'live' ? '#8b5cf6' : 'var(--adm-card-bg)',
+                  color: store.saspaySettings?.environment === 'live' ? '#ffffff' : 'var(--adm-text-m)',
+                  fontSize: '11px',
                   fontWeight: 800,
                   cursor: 'pointer'
                 }}
               >
-                🚀 Mode Réel (Production)
+                🚀 Mode Réel (sk_live_...)
+              </button>
+            </div>
+
+            <div>
+              <label className="admin-label">Clé Secrète API SasPay (Requise - Authorization Bearer)</label>
+              <input
+                type="password"
+                className="admin-input"
+                value={store.saspaySettings?.secretKey || ''}
+                onChange={e => store.updateSaspaySettings({ secretKey: e.target.value.trim() })}
+                placeholder={store.saspaySettings?.environment === 'test' ? 'sk_test_xxxxxxxxxxxxxxxx' : 'sk_live_xxxxxxxxxxxxxxxx'}
+                style={{ borderRadius: '10px', fontFamily: 'monospace', fontSize: '12px' }}
+              />
+              <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', marginTop: '3px', display: 'block' }}>
+                Récupérable dans votre compte SasPay (Dashboard &gt; Développeur &gt; Clés API)
+              </span>
+            </div>
+
+            <div>
+              <label className="admin-label">Secret de Signature Webhook SasPay (signing_secret - Optionnel)</label>
+              <input
+                type="password"
+                className="admin-input"
+                value={store.saspaySettings?.signingSecret || ''}
+                onChange={e => store.updateSaspaySettings({ signingSecret: e.target.value.trim() })}
+                placeholder="whsec_... ou signing secret"
+                style={{ borderRadius: '10px', fontFamily: 'monospace', fontSize: '12px' }}
+              />
+              <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', marginTop: '3px', display: 'block' }}>
+                Utilisé pour valider la signature HMAC-SHA256 des notifications
+              </span>
+            </div>
+
+            <div style={{ background: 'var(--adm-card-bg)', padding: '10px 12px', borderRadius: '12px', border: '1px solid var(--adm-card-border)' }}>
+              <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', display: 'block', marginBottom: '4px' }}>
+                📌 URL Webhook à coller dans votre tableau de bord SasPay :
+              </span>
+              <code style={{ fontSize: '11px', color: '#8b5cf6', wordBreak: 'break-all', fontWeight: 700 }}>
+                {typeof window !== 'undefined' ? `${window.location.origin}/api/webhook/saspay` : 'https://aymard-store.com/api/webhook/saspay'}
+              </code>
+            </div>
+
+            <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  store.setActivePaymentGateway('SASPAY');
+                  showToast('SasPay défini comme passerelle active !', 'success');
+                }}
+                className="admin-btn admin-btn-outline"
+                style={{ borderRadius: '12px', fontSize: '11.5px', fontWeight: 700 }}
+              >
+                Activer SasPay
+              </button>
+
+              <button
+                type="button"
+                onClick={() => showToast('Configuration SasPay enregistrée avec succès !', 'success')}
+                className="admin-btn admin-btn-primary"
+                style={{ borderRadius: '12px', fontSize: '11.5px', fontWeight: 800, background: '#8b5cf6' }}
+              >
+                💾 Sauvegarder SasPay
               </button>
             </div>
           </div>
-
-          <div>
-            <label className="admin-label">Clé Secrète Moneroo (Secret Key - Requise)</label>
-            <input
-              type="password"
-              className="admin-input"
-              value={store.monerooSettings?.secretKey || ''}
-              onChange={e => store.updateMonerooSettings({ secretKey: e.target.value.trim() })}
-              placeholder={store.monerooSettings?.environment === 'live' ? 'sk_live_...' : 'sk_sandbox_...'}
-              style={{ borderRadius: '10px', fontFamily: 'monospace' }}
-            />
-            <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', marginTop: '4px', display: 'block' }}>
-              Trouvable dans votre compte Moneroo (Dashboard &gt; Développeurs &gt; Clés API)
-            </span>
-          </div>
-
-          <div>
-            <label className="admin-label">Clé Publique / App ID Moneroo (Optionnel)</label>
-            <input
-              type="text"
-              className="admin-input"
-              value={store.monerooSettings?.publicKey || ''}
-              onChange={e => store.updateMonerooSettings({ publicKey: e.target.value.trim() })}
-              placeholder="pk_live_... ou pk_sandbox_..."
-              style={{ borderRadius: '10px', fontFamily: 'monospace' }}
-            />
-            <span style={{ fontSize: '11px', color: 'var(--adm-text-m)', marginTop: '4px', display: 'block' }}>
-              Identifiant public de votre application Moneroo
-            </span>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <span style={{ fontSize: '12px', color: 'var(--adm-text-m)' }}>
-            🔒 Webhook URL : <code>https://aymard-store.com/api/payments/webhook</code>
-          </span>
-          <button
-            type="button"
-            onClick={() => showToast('Configuration Moneroo enregistrée avec succès !')}
-            className="admin-btn admin-btn-primary"
-            style={{ borderRadius: '20px', padding: '8px 20px', fontSize: '12px', fontWeight: 800 }}
-          >
-            💾 Enregistrer la configuration Moneroo
-          </button>
         </div>
       </div>
 

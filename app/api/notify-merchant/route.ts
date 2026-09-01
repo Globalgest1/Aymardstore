@@ -145,10 +145,9 @@ export async function POST(req: Request) {
 
       const paymentMethodName = 
         order.paymentMethod === 'COD' ? '💵 Paiement à la Livraison (Espèces / MoMo au livreur)' :
-        order.paymentMethod === 'MONEROO_MOMO' || order.paymentMethod === 'FEDAPAY_MOMO' ? '📱 Mobile Money (MTN / Moov / Celtiis)' :
-        order.paymentMethod === 'MONEROO_CARD' || order.paymentMethod === 'FEDAPAY_CARD' ? '💳 Carte Bancaire (Visa / Mastercard)' :
-        order.paymentMethod === 'INSTALLMENTS' ? '💎 Paiement en Plusieurs Fois' :
-        '⚡ Achat Express Sécurisé';
+        order.paymentMethod === 'SASPAY' ? '🟣 SasPay (Mobile Money & Carte Bancaire)' :
+        order.paymentMethod === 'LEEKPAY' ? '🟢 LeekPay (Mobile Money & Carte Bancaire)' :
+        '⚡ Paiement Sécurisé';
 
       const statusBadge = isCod ? 'À ENCAISSER À LA LIVRAISON 🚚' : 'VALIDÉ & ENCAISSÉ ✅';
       const totalHeader = isCod ? 'TOTAL À ENCAISSER :' : 'TOTAL PAYÉ :';
