@@ -33,7 +33,6 @@ export default function QuickBuyModal() {
     processOrderPointsAndReferral,
     addAbandonedCheckout,
     updateAbandonedCheckout,
-    activePaymentGateway,
     monerooSettings,
     subscribeToMarketing
   } = useAppStore();
@@ -106,17 +105,8 @@ export default function QuickBuyModal() {
   }, [quickBuyProduct, user, activeLoc.id]);
 
   // Price calculations
-  const priceInfo = product ? getProductPrice(product, detectedLocationId) : {
-    price: 0,
-    comparePrice: 0,
-    currency: activeLoc.currency,
-    currencySymbol: activeLoc.currency,
-    formattedPrice: '',
-    formattedComparePrice: '',
-    isCustom: false,
-    location: activeLoc
-  };
-  const unitPrice = priceInfo.price;
+  const priceInfo = product ? getProductPrice(product, detectedLocationId) : null;
+  const unitPrice = priceInfo?.price ?? 0;
   const subtotal = unitPrice * quantity;
 
   // Calculate discount
@@ -143,7 +133,8 @@ export default function QuickBuyModal() {
 
   // Capture lead / abandoned checkout on blur
   const recordOrUpdateLead = (step: 'CONTACT_ENTERED' | 'PAYMENT_OPENED' | 'PAYMENT_FAILED') => {
-    if (!product || (!phone && !email && !fullName)) return;
+    if (!product) return;
+    if (!phone && !email && !fullName) return;
 
     const leadData = {
       customerName: fullName || 'Client Anonyme',
@@ -198,8 +189,8 @@ export default function QuickBuyModal() {
 
   // Capture de secours s'il quitte la page, ferme l'onglet ou passe sur une autre application
   useEffect(() => {
-    if (!isOpen || !product) return;
     const handleAppExit = () => {
+      if (!isOpen || !product) return;
       if ((phone && phone.trim().length >= 6) || fullName) {
         if (checkoutStep !== 'SUCCESS') {
           recordOrUpdateLead('CONTACT_ENTERED');
@@ -255,74 +246,12 @@ export default function QuickBuyModal() {
       return;
     }
 
-    // Online payment: Open active gateway (LeekPay or SasPay)
+    // Online payment: Open LeekPay directly for instantaneous checkout!
     recordOrUpdateLead('PAYMENT_OPENED');
     setCheckoutStep('GATEWAY');
     
-    // Auto-launch active checkout gateway
-    handleLaunchActiveGateway();
-  };
-
-  const handleLaunchActiveGateway = () => {
-    const { activePaymentGateway = 'LEEKPAY' } = useAppStore.getState();
-    if (activePaymentGateway === 'SASPAY') {
-      handleLaunchSasPay();
-    } else {
-      handleLaunchLeekPay();
-    }
-  };
-
-  const handleLaunchSasPay = async () => {
-    const amountInFcfa = activeLoc.currency === 'FCFA' 
-      ? totalAmount 
-      : Math.round(totalAmount * (activeLoc.exchangeRate || 655.957));
-
-    const orderNum = `AYM-${Date.now().toString().slice(-6)}`;
-    const { saspaySettings } = useAppStore.getState();
-
-    try {
-      setIsProcessing(true);
-      const res = await fetch('/api/checkout/saspay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: amountInFcfa,
-          currency: 'XOF',
-          description: `Achat AYMARD STORE - ${product?.name_fr || 'Article'}`,
-          country: 'BJ',
-          customerEmail: email || user?.email || 'client@aymardstore.com',
-          customerName: fullName,
-          customerPhone: phone || '',
-          returnUrl: typeof window !== 'undefined' ? `${window.location.origin}/account?tab=orders&success=true&orderNum=${orderNum}` : '',
-          secretKey: saspaySettings?.secretKey || undefined,
-          metadata: {
-            orderNum,
-            productName: product?.name_fr,
-            customerPhone: phone,
-            size: selectedSize,
-            color: selectedColor
-          }
-        })
-      });
-
-      const data = await res.json();
-
-      const checkoutUrl = data.checkout_url || data.data?.checkout_url;
-
-      if (!res.ok || !data.success || !checkoutUrl) {
-        throw new Error(data.message || 'Impossible d\'initialiser la session de paiement SasPay.');
-      }
-
-      // Pre-save order before redirecting to SasPay hosted checkout page
-      await handleConfirmPaymentSuccess(false, { id: data.id || data.data?.id, reference: data.slug || data.data?.slug }, 'SASPAY', false);
-
-      // Redirect client to SasPay hosted checkout page
-      window.location.href = checkoutUrl;
-    } catch (err: any) {
-      console.error('[SasPay Launch Error]:', err);
-      setIsProcessing(false);
-      handleCancelPayment(err?.message || 'Erreur lors de l\'ouverture de la session SasPay');
-    }
+    // Auto-launch LeekPay checkout
+    handleLaunchLeekPay();
   };
 
   const handleLaunchLeekPay = () => {
@@ -337,7 +266,7 @@ export default function QuickBuyModal() {
       customerEmail: email || user?.email || undefined,
       customerName: fullName,
       onSuccess: (tx) => {
-        handleConfirmPaymentSuccess(false, tx, 'LEEKPAY', true);
+        handleConfirmPaymentSuccess(false, tx);
       },
       onCancel: () => {
         handleCancelPayment('Paiement LeekPay interrompu');
@@ -363,12 +292,8 @@ export default function QuickBuyModal() {
   };
 
   // Step 3: Payment Confirmed / COD Validated
-  const handleConfirmPaymentSuccess = async (
-    isCodOrder: boolean = false,
-    txData?: any,
-    gatewayUsed: string = 'LEEKPAY',
-    shouldCloseModal: boolean = true
-  ) => {
+  const handleConfirmPaymentSuccess = async (isCodOrder: boolean = false, txData?: any) => {
+    if (!product) return;
     setIsProcessing(true);
     const orderNum = `AYM-${Date.now().toString().slice(-6)}`;
     const trackingNum = `TRK-BJ-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -395,8 +320,8 @@ export default function QuickBuyModal() {
         currency: (activeLoc.currency === 'FCFA' ? 'FCFA' : 'EUR') as 'EUR' | 'FCFA',
         status: 'PENDING' as const,
         paymentStatus: (isCodOrder ? 'UNPAID' : 'PAID') as 'PAID' | 'UNPAID',
-        paymentMethod: (isCodOrder ? 'COD' : gatewayUsed),
-        paymentTransactionId: isCodOrder ? 'COD_DELIVERY_PAYMENT' : (txData?.id || txData?.reference || txData?.custom_url || `tx_${gatewayUsed.toLowerCase()}_${Date.now()}`),
+        paymentMethod: (isCodOrder ? 'COD' : 'LEEKPAY'),
+        paymentTransactionId: isCodOrder ? 'COD_DELIVERY_PAYMENT' : (txData?.id || txData?.reference || txData?.custom_url || `tx_leekpay_${Date.now()}`),
         trackingNumber: trackingNum,
         shippingAddress: {
           fullName,
@@ -419,7 +344,7 @@ export default function QuickBuyModal() {
         value: totalAmount,
         currency: activeLoc.currency === 'FCFA' ? 'XOF' : 'EUR',
         num_items: 1,
-        content_ids: [product?.id || ''],
+        content_ids: [product.id],
         user_data: {
           email: email || user?.email,
           firstName: fullName,
@@ -465,9 +390,7 @@ export default function QuickBuyModal() {
       }
 
       setCreatedOrderNumber(orderNum);
-      if (shouldCloseModal) {
-        setCheckoutStep('SUCCESS');
-      }
+      setCheckoutStep('SUCCESS');
 
     } catch (err: any) {
       console.error('Error finalizing order:', err);
@@ -628,12 +551,12 @@ export default function QuickBuyModal() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={handleLaunchActiveGateway}
+                  onClick={handleLaunchLeekPay}
                   style={{
                     width: '100%',
                     height: '52px',
                     borderRadius: '30px',
-                    background: (activePaymentGateway || 'LEEKPAY') === 'SASPAY' ? '#8b5cf6' : '#09090b',
+                    background: '#09090b',
                     color: '#ffffff',
                     border: 'none',
                     fontSize: '14px',
@@ -643,14 +566,12 @@ export default function QuickBuyModal() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    boxShadow: (activePaymentGateway || 'LEEKPAY') === 'SASPAY' ? '0 6px 20px rgba(139, 92, 246, 0.35)' : '0 6px 20px rgba(0, 0, 0, 0.25)',
+                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span>
-                    ⚡ PAYER VIA {(activePaymentGateway || 'LEEKPAY') === 'SASPAY' ? 'SASPAY' : 'LEEKPAY'} ({formatAmount(totalAmount, activeLoc)})
-                  </span>
+                  <span>⚡ PAYER VIA LEEKPAY ({formatAmount(totalAmount, activeLoc)})</span>
                 </button>
 
                 <button
@@ -869,7 +790,7 @@ export default function QuickBuyModal() {
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#09090b', display: 'block' }}>
-                    {priceInfo.formattedPrice}
+                    {priceInfo?.formattedPrice}
                   </span>
                   <span style={{ fontSize: '10px', color: '#059669', fontWeight: 700 }}>
                     +{calculatePointsEarned(subtotal, activeLoc.currency)} Pts VIP
