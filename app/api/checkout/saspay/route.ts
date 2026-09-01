@@ -37,12 +37,15 @@ export async function POST(req: Request) {
       secretKey
     });
 
+    const sessionData = session?.data || session;
+
     return NextResponse.json({
       success: true,
-      id: session.id,
-      slug: session.slug,
-      checkout_url: session.checkout_url,
-      status: session.status
+      id: sessionData.id,
+      slug: sessionData.slug,
+      checkout_url: sessionData.checkout_url,
+      status: sessionData.status,
+      data: sessionData
     });
   } catch (error: any) {
     console.error('[SasPay Checkout API Error]:', error);

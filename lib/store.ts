@@ -148,7 +148,7 @@ export interface SaspaySettings {
 }
 
 export const DEFAULT_SASPAY_SETTINGS: SaspaySettings = {
-  secretKey: '',
+  secretKey: 'sk_live_JxcC9tQm8u1OwnJa6Bl_lSOMj46L6q-q-i-fur797J8',
   signingSecret: '',
   environment: 'live',
   enabled: true,
@@ -3157,9 +3157,9 @@ export const useAppStore = create<AppState>()(
         state?.setHasHydrated(true);
         if (state) {
           if (!state.activePaymentGateway) {
-            state.activePaymentGateway = 'LEEKPAY';
+            state.activePaymentGateway = 'SASPAY';
           }
-          if (!state.saspaySettings) {
+          if (!state.saspaySettings || !state.saspaySettings.secretKey) {
             state.saspaySettings = DEFAULT_SASPAY_SETTINGS;
           }
         }

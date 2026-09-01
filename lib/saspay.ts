@@ -23,13 +23,15 @@ export interface SaspayCreateCheckoutParams {
 }
 
 export interface SaspayCheckoutResponse {
-  id: string;
-  slug: string;
-  checkout_url: string;
-  status: string;
+  id?: string;
+  slug?: string;
+  checkout_url?: string;
+  status?: string;
   amount?: string;
   currency?: string;
   message?: string;
+  data?: any;
+  code?: number;
 }
 
 /**
@@ -79,7 +81,13 @@ export async function createSaspayCheckoutSession(
     throw new Error(errorMsg);
   }
 
-  return data;
+  return {
+    ...data,
+    id: data.id || data.data?.id,
+    slug: data.slug || data.data?.slug,
+    checkout_url: data.checkout_url || data.data?.checkout_url,
+    status: data.status || data.data?.status
+  };
 }
 
 /**
