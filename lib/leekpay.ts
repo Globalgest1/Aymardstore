@@ -57,6 +57,7 @@ export function loadLeekPayScript(): Promise<void> {
 export interface LeekPayCheckoutOptions {
   amount: number;
   currency?: 'XOF' | 'EUR' | 'USD';
+  apiKey?: string;
   description?: string;
   customerEmail?: string;
   customerName?: string;
@@ -79,7 +80,7 @@ export async function openLeekPayCheckout(options: LeekPayCheckoutOptions) {
     window.LeekPay.checkout({
       amount: Math.max(100, Math.round(options.amount)),
       currency: options.currency || 'XOF',
-      apiKey: LEEKPAY_PUBLIC_KEY,
+      apiKey: (options.apiKey && options.apiKey.trim()) ? options.apiKey.trim() : LEEKPAY_PUBLIC_KEY,
       description: options.description || 'Commande AYMARD STORE',
       customerEmail: options.customerEmail || undefined,
       customerName: options.customerName || undefined,

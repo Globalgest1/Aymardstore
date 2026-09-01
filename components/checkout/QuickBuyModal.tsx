@@ -262,6 +262,7 @@ export default function QuickBuyModal() {
     openLeekPayCheckout({
       amount: amountInFcfa,
       currency: 'XOF',
+      apiKey: monerooSettings?.publicKey?.trim() || undefined,
       description: `Achat AYMARD STORE - ${product?.name_fr || 'Article'}`,
       customerEmail: email || user?.email || undefined,
       customerName: fullName,
