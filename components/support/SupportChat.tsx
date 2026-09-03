@@ -179,19 +179,23 @@ export default function SupportChat() {
       };
     }
 
-    // 4. Paiement en plusieurs fois 2X, 3X, 4X
+    // 4. Paiement sécurisé & Moyens de règlement (LeekPay)
     if (
       actionKey === 'payment_plans' ||
-      q.includes('3x') ||
-      q.includes('2x') ||
-      q.includes('4x') ||
-      q.includes('plusieurs fois') ||
-      q.includes('sans frais') ||
+      q.includes('paiement') ||
       q.includes('payer') ||
-      q.includes('echeance')
+      q.includes('leekpay') ||
+      q.includes('momo') ||
+      q.includes('moov') ||
+      q.includes('celtiis') ||
+      q.includes('orange money') ||
+      q.includes('wave') ||
+      q.includes('carte') ||
+      q.includes('visa') ||
+      q.includes('mastercard')
     ) {
       return {
-        text: "**Facilités de Paiement Sans Frais :**\n\nSur Aymard Store, vous pouvez échelonner votre paiement en **2X, 3X ou 4X sans le moindre frais (0€ d'intérêt)**.\n\n• La 1ère mensualité est débitée aujourd'hui.\n• Les suivantes à J+30, J+60 et J+90.\n• Éligible avec toutes les cartes bancaires, Visa, Mastercard, Apple Pay et Klarna directement dans votre panier.",
+        text: "**Moyens de Paiement 100% Sécurisés (LeekPay) :**\n\nSur Aymard Store, réglez vos commandes en toute simplicité et sécurité :\n\n• **Mobile Money (Validation instantanée)** : MTN MoMo, Moov Money, Celtiis Cash, Orange Money, Wave.\n• **Cartes Bancaires** : Visa, Mastercard (chiffrement bancaire SSL).\n• **Paiement à la livraison** : Disponible sur tout le territoire béninois (Cotonou, Calavi, Porto-Novo, etc.).",
         options: [
           { label: 'Voir mon Panier', action: 'go_cart' },
           { label: 'Découvrir le Catalogue', action: 'go_products' }
@@ -287,8 +291,12 @@ export default function SupportChat() {
       window.location.href = '/cart';
       return;
     }
-    if (actionKey === 'go_products') {
+    if (actionKey === 'go_products' || actionKey === 'go_product') {
       window.location.href = '/products';
+      return;
+    }
+    if (actionKey && (actionKey.startsWith('/') || actionKey.startsWith('http'))) {
+      window.location.href = actionKey;
       return;
     }
     if (actionKey === 'open_whatsapp') {
@@ -303,8 +311,9 @@ export default function SupportChat() {
     }
 
     // 1. Enregistrer le message de l'utilisateur dans le store avec image
-    if (text || img) {
-      sendSupportMessage(text || (img ? 'Photo jointe' : ''), 'user', undefined, img || undefined, currentConversationId, topicToSet);
+    const userMessageText = text || (img ? '📷 Photo envoyée pour analyse' : '');
+    if (userMessageText || img) {
+      sendSupportMessage(userMessageText, 'user', undefined, img || undefined, currentConversationId, topicToSet);
       setInputVal('');
       setSelectedImage(null);
     }
@@ -314,15 +323,46 @@ export default function SupportChat() {
       return;
     }
 
-    // 3. Traiter la réponse du bot avec délai naturel
+    // 3. Traiter la réponse du bot avec l'IA Gemini (et fallback local élégant)
     setIsTyping(true);
-    setTimeout(() => {
+
+    const historyPayload = messages.slice(-6).map((m: any) => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: m.text || ''
+    }));
+
+    (async () => {
+      try {
+        const response = await fetch('/api/support/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text || (img ? "Que pensez-vous de ce modèle sur la photo ? L'avez-vous en stock et quel est son tarif ?" : ''),
+            image: img || null,
+            history: historyPayload,
+            country: useAppStore.getState().detectedLocationId || 'benin'
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.text) {
+            setIsTyping(false);
+            sendSupportMessage(data.text, 'bot', data.options, undefined, currentConversationId, topicToSet);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[SupportChat] Erreur appel IA, bascule sur moteur local:', err);
+      }
+
+      // Fallback local en cas de coupure réseau ou indisponibilité API
       setIsTyping(false);
       const res = generateHumanResponse(text, actionKey);
       if (res) {
         sendSupportMessage(res.text, 'bot', res.options, undefined, currentConversationId, topicToSet);
       }
-    }, 650);
+    })();
   };
 
   // Don't render until mounted or if inside admin
@@ -481,11 +521,16 @@ export default function SupportChat() {
 
               <div>
                 <div style={{ fontWeight: 800, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', color: '#ffffff' }}>
-                  <span>{isHumanAgent ? 'Conseiller Aymard Store' : 'Conseiller Aymard Store'}</span>
+                  <span>{isHumanAgent ? 'Conseiller Aymard Store' : 'Concierge IA Aymard Store'}</span>
+                  {!isHumanAgent && (
+                    <span style={{ fontSize: '10px', background: 'rgba(234,179,8,0.2)', color: '#facc15', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, border: '1px solid rgba(234,179,8,0.3)' }}>
+                      ✨ IA Active
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-                  <span>{isHumanAgent ? 'Conseiller VIP en direct' : 'En ligne • Réponse immédiate'}</span>
+                  <span>{isHumanAgent ? 'Conseiller VIP en direct' : 'Reconnaissance Photos & Catalogue • 24/7'}</span>
                 </div>
               </div>
             </div>
@@ -664,7 +709,13 @@ export default function SupportChat() {
                       {m.options.map((opt, i) => (
                         <button
                           key={i}
-                          onClick={() => handleSend(opt.label, opt.action)}
+                          onClick={() => {
+                            if ((opt as any).url) {
+                              window.location.href = (opt as any).url;
+                              return;
+                            }
+                            handleSend(opt.label, opt.action);
+                          }}
                           style={{
                             background: '#ffffff',
                             border: '1.5px solid #e2e8f0',
@@ -838,7 +889,7 @@ export default function SupportChat() {
               type="text"
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
-              placeholder="Écrivez votre message..."
+              placeholder={selectedImage ? "Posez votre question sur cette photo..." : "Posez une question ou envoyez une photo d'article..."}
               style={{
                 flex: 1,
                 minWidth: 0,

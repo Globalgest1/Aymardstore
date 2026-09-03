@@ -50,12 +50,14 @@ export default function Footer() {
   };
 
   const paymentMethods = [
-    { label: 'CB', bg: '#00A896', text: '#fff' },
+    { label: 'MTN MoMo', bg: '#FFCC00', text: '#000' },
+    { label: 'Moov Money', bg: '#005DAA', text: '#fff' },
+    { label: 'Celtiis Cash', bg: '#008751', text: '#fff' },
+    { label: 'Orange Money', bg: '#FF7900', text: '#fff' },
+    { label: 'Wave', bg: '#1DC4FA', text: '#000' },
     { label: 'VISA', bg: '#1A1F71', text: '#fff' },
     { label: 'Mastercard', bg: '#EB001B', text: '#fff' },
-    { label: ' Pay', bg: '#ffffff', text: '#000' },
-    { label: 'PayPal', bg: '#003087', text: '#fff' },
-    { label: 'Klarna 4X', bg: '#FFB3C7', text: '#000' },
+    { label: 'LeekPay', bg: '#10B981', text: '#fff' },
   ];
 
   return (
