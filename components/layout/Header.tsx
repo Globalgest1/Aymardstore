@@ -317,10 +317,12 @@ export default function Header() {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       setDarkMode(false);
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
     } else {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       setDarkMode(true);
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -513,7 +515,7 @@ export default function Header() {
               setMobileMenuOpen(true);
             }}
             aria-label="Ouvrir le menu"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '8px', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: darkMode ? '#ffffff' : '#09090b', padding: '8px', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.2s ease' }}
           >
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
@@ -523,7 +525,12 @@ export default function Header() {
               src="/logo.png" 
               alt="Aymard Logo" 
               className="header-logo-img"
-              style={{ filter: 'brightness(0) invert(1)', objectFit: 'contain', display: 'block' }} 
+              style={{ 
+                filter: darkMode ? 'brightness(0) invert(1)' : 'brightness(0)', 
+                objectFit: 'contain', 
+                display: 'block',
+                transition: 'filter 0.25s ease'
+              }} 
             />
           </Link>
 
@@ -537,21 +544,65 @@ export default function Header() {
               onChange={(e) => setSearchQuery(e.target.value)} 
             />
             <button type="submit" className="header-search-btn" aria-label="Rechercher">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </button>
           </form>
 
           {/* Actions Menu */}
-          <div className="header-actions" style={{display:'flex',alignItems:'center',gap:'20px',zIndex:10}}>
+          <div className="header-actions" style={{display:'flex',alignItems:'center',gap:'16px',zIndex:10}}>
 
             {/* Mobile Search Trigger */}
             <button 
               className="mobile-search-toggle"
               onClick={() => setMobileSearchOpen(true)}
               aria-label="Rechercher"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-white)', padding: '4px' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: darkMode ? '#ffffff' : '#09090b', padding: '4px', transition: 'color 0.2s ease' }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+
+            {/* Theme Switcher Toggle (Harmonized 22px SVG with Account, Favorites & Cart) */}
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              className="header-action-btn header-theme-toggle"
+              aria-label={darkMode ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              title={darkMode ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px',
+                color: darkMode ? '#ffffff' : '#09090b',
+                transition: 'transform 0.2s ease, color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              {darkMode ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
             </button>
 
             {/* Account Icon (Triggers 3D Splash Redirect) */}
@@ -562,7 +613,7 @@ export default function Header() {
               }}
               className="header-action-btn header-action-account" 
               aria-label="Compte" 
-              style={{background:'none',border:'none',color:'#ffffff',cursor:'pointer',display:'flex',alignItems:'center',padding:0}}
+              style={{background:'none',border:'none',color: darkMode ? '#ffffff' : '#09090b',cursor:'pointer',display:'flex',alignItems:'center',padding:0,transition:'color 0.2s ease'}}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </button>
@@ -572,7 +623,7 @@ export default function Header() {
               href="/account/favorites" 
               className="header-action-btn header-action-favorites" 
               aria-label="Favoris" 
-              style={{color:'#ffffff',textDecoration:'none',display:'flex',alignItems:'center'}}
+              style={{color: darkMode ? '#ffffff' : '#09090b',textDecoration:'none',display:'flex',alignItems:'center',transition:'color 0.2s ease'}}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             </Link>
@@ -582,7 +633,7 @@ export default function Header() {
               href="/cart" 
               className="header-action-btn" 
               aria-label="Panier" 
-              style={{color:'#ffffff',textDecoration:'none',position:'relative',display:'flex',alignItems:'center'}}
+              style={{color: darkMode ? '#ffffff' : '#09090b',textDecoration:'none',position:'relative',display:'flex',alignItems:'center',transition:'color 0.2s ease'}}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -592,12 +643,11 @@ export default function Header() {
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
 
-
           </div>
 
           {/* Mobile Search Overlay */}
           {mobileSearchOpen && (
-            <div className="mobile-search-overlay-bar" style={{ background: '#1c1c1c', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="mobile-search-overlay-bar" style={{ background: darkMode ? '#1c1c1c' : '#ffffff', borderBottom: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0' }}>
               <form onSubmit={handleSearch} style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
                 <input 
                   type="text" 
@@ -605,15 +655,15 @@ export default function Header() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
-                  style={{ flex: 1, border: 'none', fontSize: '16px', outline: 'none', padding: '8px 0', background: 'transparent', color: '#ffffff' }}
+                  style={{ flex: 1, border: 'none', fontSize: '16px', outline: 'none', padding: '8px 0', background: 'transparent', color: darkMode ? '#ffffff' : '#09090b' }}
                 />
-                <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#ffffff' }}>
+                <button type="submit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: darkMode ? '#ffffff' : '#09090b' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </button>
                 <button 
                   type="button" 
                   onClick={() => setMobileSearchOpen(false)} 
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', fontSize: '18px', marginLeft: '8px', color: '#ffffff' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', fontSize: '18px', marginLeft: '8px', color: darkMode ? '#ffffff' : '#09090b' }}
                 >
                   ✕
                 </button>
@@ -764,14 +814,30 @@ export default function Header() {
                     background: darkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
                     border: 'none',
                     cursor: 'pointer',
-                    fontSize: '18px',
+                    color: darkMode ? '#ffffff' : '#09090b',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  {darkMode ? '🌙' : '☀️'}
+                  {darkMode ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="5" />
+                      <line x1="12" y1="1" x2="12" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="23" />
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                      <line x1="1" y1="12" x2="3" y2="12" />
+                      <line x1="21" y1="12" x2="23" y2="12" />
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  )}
                 </button>
 
                 <button 

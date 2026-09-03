@@ -704,8 +704,8 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantNotificationSettings = {
   whatsappEnabled: true,
   whatsappPhoneNumber: '+229 01 97 36 29 06',
   whatsappWebhookUrl: '',
-  leekpayPublicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
-  leekpaySecretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+  leekpayPublicKey: '',
+  leekpaySecretKey: '',
   leekpayEnabled: true,
   notifyOnNewOrder: true,
   notifyOnPayment: true,
@@ -994,8 +994,8 @@ export const DEFAULT_PRODUCT_REVIEWS: ProductReview[] = [];
 export const DEFAULT_ABANDONED_CHECKOUTS: AbandonedCheckout[] = [];
 
 export const DEFAULT_MONEROO_SETTINGS: MonerooSettings = {
-  publicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
-  secretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+  publicKey: '',
+  secretKey: '',
   appId: '',
   environment: 'live',
   enabled: true
@@ -1803,12 +1803,30 @@ export const useAppStore = create<AppState>()(
         }
         return { orders: nextOrders };
       }),
-      updateOrderStatus: (orderId, status) => set((state) => ({
-        orders: state.orders.map((o) => o.id === orderId ? { ...o, status } : o)
-      })),
-      updateOrderTracking: (orderId, trackingUpdates) => set((state) => ({
-        orders: state.orders.map((o) => o.id === orderId ? { ...o, ...trackingUpdates } : o)
-      })),
+      updateOrderStatus: (orderId, status) => set((state) => {
+        if (typeof window !== 'undefined') {
+          fetch(`/api/orders/${orderId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          }).catch(err => console.error('Erreur synchronisation statut SQL:', err));
+        }
+        return {
+          orders: state.orders.map((o) => o.id === orderId ? { ...o, status } : o)
+        };
+      }),
+      updateOrderTracking: (orderId, trackingUpdates) => set((state) => {
+        if (typeof window !== 'undefined') {
+          fetch(`/api/orders/${orderId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(trackingUpdates)
+          }).catch(err => console.error('Erreur synchronisation suivi SQL:', err));
+        }
+        return {
+          orders: state.orders.map((o) => o.id === orderId ? { ...o, ...trackingUpdates } : o)
+        };
+      }),
       addTrackingCheckpoint: (orderId, checkpoint) => set((state) => ({
         orders: state.orders.map((o) => {
           if (o.id !== orderId) return o;
@@ -3181,16 +3199,16 @@ export const useAppStore = create<AppState>()(
             persistedState.homepageMedia.communityPhotos = [];
           }
           persistedState.monerooSettings = {
-            publicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
-            secretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+            publicKey: '',
+            secretKey: '',
             appId: '',
             environment: 'live',
             enabled: true
           };
           persistedState.merchantSettings = {
             ...(persistedState.merchantSettings || DEFAULT_MERCHANT_SETTINGS),
-            leekpayPublicKey: 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd',
-            leekpaySecretKey: 'sk_live_jlRZdhgm0llVExlj6eZiSZQtpB85kMCO',
+            leekpayPublicKey: '',
+            leekpaySecretKey: '',
             leekpayEnabled: true
           };
           if (!persistedState.products || persistedState.products.length === 0) {

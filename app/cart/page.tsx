@@ -357,6 +357,13 @@ export default function CartPage() {
       addOrder(newOrder as any);
       processOrderPointsAndReferral(newOrder as any);
 
+      // Enregistrement persistant dans la base relationnelle SQL
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder),
+      }).catch(err => console.error('Erreur enregistrement SQL commande:', err));
+
       // Notify Merchant on Telegram / Email / WhatsApp
       const { merchantSettings } = useAppStore.getState();
       fetch('/api/notify-merchant', {

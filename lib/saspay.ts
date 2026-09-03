@@ -43,7 +43,6 @@ export async function createSaspayCheckoutSession(
   const secretKey =
     params.secretKey ||
     process.env.SASPAY_SECRET_KEY ||
-    process.env.NEXT_PUBLIC_SASPAY_SECRET_KEY ||
     '';
 
   if (!secretKey) {
@@ -97,7 +96,6 @@ export async function verifySaspayPayment(paymentId: string, secretKey?: string)
   const key =
     secretKey ||
     process.env.SASPAY_SECRET_KEY ||
-    process.env.NEXT_PUBLIC_SASPAY_SECRET_KEY ||
     '';
 
   if (!key) {

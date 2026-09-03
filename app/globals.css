@@ -102,31 +102,110 @@ html.dark .product-card:hover {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
 }
 
-html.dark .mega-menu {
-  background-color: #0e1526 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+html.dark .header {
+  background-color: #070a13 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
-html.dark .mega-menu-item {
+html.dark .header.scrolled {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .header-nav {
+  background-color: #0b0f19 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+html.dark .header-nav-link {
   color: #f8fafc !important;
 }
 
-html.dark .mega-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.04) !important;
+html.dark .header-nav-link:hover {
+  color: #38bdf8 !important;
+  opacity: 1 !important;
 }
 
-html.dark .header-search-input {
-  background-color: #070a13 !important;
+html.dark .header-logo {
+  color: #ffffff !important;
+}
+
+html.dark .header-action-btn {
   color: #ffffff !important;
 }
 
 html.dark .header-search {
   border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark .header-search:focus-within {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+}
+
+html.dark .header-search-input {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+html.dark .header-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+html.dark .header-search-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
 }
 
 html.dark .header-search-select {
   background-color: #070a13 !important;
   color: #ffffff !important;
+}
+
+html.dark .sneakers-mega-menu {
+  background-color: #0b0f19 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark .mega-menu-col-title {
+  color: #f8fafc !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .mega-menu-link-item a {
+  color: #94a3b8 !important;
+}
+
+html.dark .mega-menu-link-item a:hover {
+  color: #38bdf8 !important;
+}
+
+html.dark .mega-menu-link-item.bold-link a {
+  color: #ffffff !important;
+}
+
+html.dark .top-bar {
+  background-color: #12100d !important;
+  color: #fef08a !important;
+  border-bottom: 1px solid rgba(254, 240, 138, 0.1) !important;
+}
+
+html.dark .hero-discover-btn {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark .hero-discover-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 255, 255, 0.4) !important;
 }
 
 /* ==========================================================================
@@ -286,19 +365,19 @@ ul, ol {
 }
 
 .header {
-  background-color: #1c1c1c;
-  color: var(--color-white);
+  background-color: #ffffff;
+  color: #09090b;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  transition: box-shadow var(--transition-normal);
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow var(--transition-normal);
 }
 
 .header.scrolled {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .header .container.flex-between {
@@ -318,42 +397,45 @@ ul, ol {
 
 .header-nav {
   width: 100%;
-  height: 40px;
-  background-color: #1c1c1c;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  height: 42px;
+  background-color: #f8fafc;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .header-nav-link {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-white);
+  font-weight: 700;
+  color: #1e293b;
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-fast), color 0.2s ease;
 }
 
 .header-nav-link:hover {
-  opacity: 0.7;
+  opacity: 0.75;
+  color: #0284c7;
 }
 
 .header-logo {
   font-size: 20px;
   font-weight: 800;
-  color: var(--color-white);
+  color: #09090b;
   letter-spacing: -0.5px;
   text-transform: uppercase;
 }
 
 .header-action-btn {
-  color: var(--color-white);
-  transition: opacity var(--transition-fast);
+  color: #09090b;
+  transition: opacity var(--transition-fast), color 0.2s ease, transform 0.2s ease;
 }
 
 .header-action-btn:hover {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .header-search {
@@ -363,15 +445,16 @@ ul, ol {
   margin: 0 var(--space-8);
   height: 38px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
   overflow: hidden;
   transition: all var(--transition-fast);
 }
 
 .header-search:focus-within {
-  border-color: rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.08);
+  border-color: #0284c7;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .header-search-input {
@@ -379,24 +462,26 @@ ul, ol {
   border: none;
   padding: 0 var(--space-4);
   background: transparent;
-  color: var(--color-white);
+  color: #09090b;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .header-search-input::placeholder {
-  color: rgba(255,255,255,0.4);
+  color: #94a3b8;
 }
 
 .header-search-btn {
   padding: 0 var(--space-5);
-  background: rgba(255,255,255,0.1);
-  color: var(--color-white);
+  background: transparent;
+  color: #64748b;
   border: none;
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
 .header-search-btn:hover {
-  background: rgba(255,255,255,0.15);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .header-icons {
@@ -559,33 +644,43 @@ ul, ol {
   bottom: 50px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: var(--color-white);
-  color: #111111;
-  padding: 16px 48px;
+  background-color: #ffffff;
+  color: #09090b !important;
+  padding: 14px 44px;
   border-radius: var(--radius-full);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  border: none;
+  letter-spacing: 1.2px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
-  transition: all var(--transition-fast);
-  z-index: 3;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
   .hero-discover-btn {
     bottom: 22px;
-    padding: 9px 26px;
+    padding: 10px 28px;
     font-size: 11px;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.8px;
   }
 }
 
 .hero-discover-btn:hover {
-  background-color: #f0f0f0;
-  transform: translateX(-50%) scale(1.03);
+  background-color: #f1f5f9;
+  color: #000000 !important;
+  transform: translateX(-50%) translateY(-2px) scale(1.04);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+}
+
+.hero-discover-btn:active {
+  transform: translateX(-50%) translateY(0) scale(0.98);
 }
 
 .hero-slide {
@@ -1923,10 +2018,11 @@ ul, ol {
     background: transparent !important;
     border: none !important;
     cursor: pointer !important;
-    color: #ffffff !important;
+    color: #09090b !important;
     padding: 8px !important;
     z-index: 100 !important;
     -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s ease;
   }
   .mobile-search-toggle {
     display: flex !important;
@@ -1937,9 +2033,15 @@ ul, ol {
     background: transparent !important;
     border: none !important;
     cursor: pointer !important;
-    color: #ffffff !important;
+    color: #09090b !important;
     padding: 8px !important;
+    transition: color 0.2s ease;
   }
+}
+
+html.dark .mobile-nav-toggle,
+html.dark .mobile-search-toggle {
+  color: #ffffff !important;
 }
 
 /* Mobile Sidebar Hamburger Menu Drawer */

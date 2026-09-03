@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-export const LEEKPAY_PUBLIC_KEY = process.env.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY || 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd';
+export const LEEKPAY_PUBLIC_KEY = process.env.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY || '';
 
 /**
  * Ensures the official LeekPay popup widget script is loaded

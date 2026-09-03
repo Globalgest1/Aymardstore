@@ -334,9 +334,16 @@ export default function QuickBuyModal() {
         }
       };
 
-      // 1. Add order to store
+      // 1. Add order to store & save in SQLite database
       addOrder(newOrder as any);
       processOrderPointsAndReferral(newOrder as any);
+
+      // Enregistrement persistant dans la base relationnelle SQL
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder),
+      }).catch(err => console.error('Erreur enregistrement SQL QuickBuy:', err));
 
       // 2. Track Pixel "Purchase"
       trackPixelEvent({

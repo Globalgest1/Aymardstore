@@ -5,7 +5,14 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount, currency = 'XOF', description, customerEmail, customerName } = body;
 
-    const apiKey = process.env.LEEKPAY_PUBLIC_KEY || process.env.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY || 'pk_live_O5SZdfU4qvpn651kMnmes9PWdo5eMxsd';
+    const apiKey = process.env.LEEKPAY_PUBLIC_KEY || '';
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, message: 'Passerelle LeekPay non configurée sur le serveur.' },
+        { status: 500 }
+      );
+    }
 
     const res = await fetch('https://leekpay.fr/api/public/widget/checkout', {
       method: 'POST',

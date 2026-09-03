@@ -54,7 +54,13 @@ function LoginForm() {
   const { language, login, merchantSettings } = useAppStore();
   const { t } = useTranslation(language);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (searchParams.get('unauthorized')) {
+      setError('Accès restreint : session administrateur requise.');
+    }
+  }, [searchParams]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -63,24 +69,55 @@ function LoginForm() {
       return;
     }
 
+    const trimmedEmail = email.trim();
+
+    // Check Admin account via secure server endpoint
+    if (trimmedEmail.toLowerCase() === 'judesinaberogui@gmail.com') {
+      try {
+        const res = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmedEmail, password }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setError(data.error || 'Identifiants administrateur incorrects.');
+          return;
+        }
+
+        setSplashVisible(true);
+        setTimeout(() => {
+          setSplashActive(true);
+        }, 40);
+
+        login(data.user.email, data.user.name, 'ADMIN', data.user.phone);
+
+        setTimeout(() => {
+          router.push('/admin');
+          setTimeout(() => {
+            setSplashActive(false);
+            setTimeout(() => {
+              setSplashVisible(false);
+            }, 600);
+          }, 350);
+        }, 1600);
+        return;
+      } catch {
+        setError('Erreur de connexion au serveur d’authentification.');
+        return;
+      }
+    }
+
+    // Customer login
     setSplashVisible(true);
     setTimeout(() => {
       setSplashActive(true);
     }, 40);
 
     setTimeout(() => {
-      let destination = redirectUrl || '/account';
-
-      // Check Admin account
-      if (email === 'judesinaberogui@gmail.com' && password === 'Mercredi12@') {
-        login(email, 'Judesinaberogui', 'ADMIN', '+229 01 97 36 29 06');
-        destination = '/admin';
-      } else {
-        // Customer login
-        login(email, email.split('@')[0], 'CUSTOMER', '+229 01 97 36 29 06');
-      }
-
-      router.push(destination);
+      login(trimmedEmail, trimmedEmail.split('@')[0], 'CUSTOMER', '+229 01 97 36 29 06');
+      router.push(redirectUrl || '/account');
 
       setTimeout(() => {
         setSplashActive(false);

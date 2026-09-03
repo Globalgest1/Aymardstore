@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { verifyAdminSessionToken, ADMIN_COOKIE_NAME } from '@/lib/admin-session';
+import { getAllProducts, upsertProducts, clearProducts } from '@/lib/db';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-const DOWNLOADS_CSV = 'C:\\Users\\HP\\Downloads\\shopify_products_wehaveit_fr.csv';
+const DOWNLOADS_CSV = process.env.SHOPIFY_IMPORT_CSV_PATH || '';
+
+async function checkAdminAuth(req: Request): Promise<boolean> {
+  const cookieHeader = req.headers.get('cookie') || '';
+  const match = cookieHeader.match(new RegExp(`${ADMIN_COOKIE_NAME}=([^;]+)`));
+  const token = match ? match[1] : null;
+  const session = await verifyAdminSessionToken(token);
+  return session.valid;
+}
 
 // RFC 4180 Multi-line CSV parser
 function parseFullCSV(text: string): string[][] {
@@ -296,12 +306,26 @@ function loadProductsFromFile(): any[] {
 }
 
 export async function GET() {
-  const products = loadProductsFromFile();
-  return NextResponse.json({ success: true, count: products.length, products });
+  try {
+    const products = getAllProducts();
+    return NextResponse.json({ success: true, count: products.length, products });
+  } catch (err: any) {
+    console.error('Error fetching products from SQLite:', err);
+    const fallback = loadProductsFromFile();
+    return NextResponse.json({ success: true, count: fallback.length, products: fallback });
+  }
 }
 
 export async function POST(req: Request) {
   try {
+    const isAuthorized = await checkAdminAuth(req);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { success: false, error: 'Accès refusé : privilèges administrateur requis pour modifier le catalogue.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     let newProducts = [];
 
@@ -311,6 +335,10 @@ export async function POST(req: Request) {
       newProducts = body.products;
     } else if (Array.isArray(body)) {
       newProducts = body;
+    }
+
+    if (newProducts.length > 0) {
+      upsertProducts(newProducts);
     }
 
     if (!fs.existsSync(DATA_DIR)) {
@@ -329,8 +357,18 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   try {
+    const isAuthorized = await checkAdminAuth(req);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { success: false, error: 'Accès refusé : privilèges administrateur requis pour réinitialiser le catalogue.' },
+        { status: 403 }
+      );
+    }
+
+    clearProducts();
+
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }

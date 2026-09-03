@@ -325,6 +325,29 @@ function CustomerAccountPortal() {
     return orders.filter(o => o.customerEmail && o.customerEmail.toLowerCase() === user.email.toLowerCase());
   }, [orders, user]);
 
+  // Synchronisation avec la base relationnelle SQL serveur
+  useEffect(() => {
+    if (!user?.email) return;
+    async function syncServerOrders() {
+      try {
+        const res = await fetch(`/api/orders?email=${encodeURIComponent(user.email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.orders)) {
+            const currentOrders = useAppStore.getState().orders || [];
+            const mergedMap = new Map<string, Order>();
+            currentOrders.forEach(o => mergedMap.set(o.id || o.orderNumber, o));
+            data.orders.forEach((o: Order) => mergedMap.set(o.id || o.orderNumber, o));
+            useAppStore.setState({ orders: Array.from(mergedMap.values()) });
+          }
+        }
+      } catch (err) {
+        console.error('Erreur synchronisation commandes SQL:', err);
+      }
+    }
+    syncServerOrders();
+  }, [user?.email]);
+
   const favoriteProducts = useMemo(() => {
     const favs = products.filter(p => favorites.includes(p.id));
     return favs.length > 0 ? favs : products.slice(0, 4);

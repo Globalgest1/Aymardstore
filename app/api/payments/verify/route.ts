@@ -3,14 +3,16 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { transactionId, paymentId, secretKey } = body;
+    const { transactionId, paymentId } = body;
 
     const id = paymentId || transactionId;
     if (!id) {
-      return NextResponse.json({ error: 'Transaction / Payment ID manquant' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Transaction / Payment ID manquant' }, { status: 400 });
     }
 
-    // If real secretKey provided, verify directly with Moneroo API
+    const secretKey = process.env.MONEROO_SECRET_KEY || process.env.LEEKPAY_SECRET_KEY || '';
+
+    // If server has a configured Secret Key, verify directly with API
     if (secretKey && secretKey.length > 10 && !secretKey.includes('Demo')) {
       try {
         const response = await fetch(`https://api.moneroo.io/v1/payments/${id}/verify`, {
@@ -39,20 +41,31 @@ export async function POST(req: Request) {
           });
         }
       } catch (err: any) {
-        console.error('Moneroo verify API error:', err);
+        console.error('[Payment Verify API Error]:', err);
+        return NextResponse.json({ success: false, error: 'Échec de communication avec la passerelle' }, { status: 502 });
       }
     }
 
-    // Default simulated verification (Sandbox validation)
+    // In production, reject unverified payments
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({
+        success: false,
+        status: 'UNVERIFIED',
+        error: 'Passerelle de paiement en cours de configuration sur le serveur.'
+      }, { status: 400 });
+    }
+
+    // Explicit Non-Production Sandbox Test Simulation Only
     return NextResponse.json({
       success: true,
       status: 'PAID',
-      monerooStatus: 'success',
-      message: 'Transaction Moneroo vérifiée avec succès'
+      monerooStatus: 'sandbox_test_success',
+      isSandboxTest: true,
+      message: 'Mode bac à sable : transaction simulée en environnement de développement local'
     });
 
   } catch (error: any) {
-    console.error('Error verifying Moneroo payment:', error);
-    return NextResponse.json({ error: error?.message || 'Erreur de vérification Moneroo' }, { status: 500 });
+    console.error('[Error verifying payment]:', error);
+    return NextResponse.json({ success: false, error: error?.message || 'Erreur de vérification' }, { status: 500 });
   }
 }
