@@ -1,28 +1,35 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+/vendor
 
-# testing
+# testing & caches
 /coverage
+.phpunit.result.cache
 
-# next.js
-/.next/
-/out/
+# production & build
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
 
-# production
-/build
+# framework storage files
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
 
-# misc
+# misc & backups
 .DS_Store
 *.pem
+_nextjs_backup/
+scratch/
+screenshots/
 
 # debug
 npm-debug.log*
@@ -30,21 +37,27 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# environment files
+.env
+.env.backup
+.env.local
+.env.production
+.env.staging
 
-# vercel
-.vercel
-
-# typescript
+# typescript & next leftovers
 *.tsbuildinfo
 next-env.d.ts
+/.next/
+/out/
 
-# sqlite database & locks
+# databases
 data/*.db
 data/*.db-shm
 data/*.db-wal
 *.db
 *.db-shm
 *.db-wal
-
+database/*.sqlite
+database/*.sqlite-journal
+database/*.sqlite-shm
+database/*.sqlite-wal
