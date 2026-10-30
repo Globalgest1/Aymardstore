@@ -12,6 +12,7 @@ class HomeController extends Controller
     {
         $products = Product::orderBy('is_featured', 'desc')
             ->orderBy('id', 'desc')
+            ->take(16)
             ->get();
 
         return Inertia::render('Home', [
