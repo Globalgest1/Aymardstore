@@ -91,8 +91,6 @@ require __DIR__ . '/../vendor/autoload.php';
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
 // Force HTTPS scheme in Laravel URL generator
-\Illuminate\Support\Facades\URL::forceScheme('https');
-
 // Auto-migrate and seed if newly initialized
 if ($isNewDb) {
     try {
