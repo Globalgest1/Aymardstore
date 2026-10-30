@@ -9,6 +9,7 @@ $tmpDirs = [
     '/tmp/views',
     '/tmp/sessions',
     '/tmp/cache',
+    '/tmp/logs',
 ];
 foreach ($tmpDirs as $dir) {
     if (!is_dir($dir)) {
@@ -16,7 +17,15 @@ foreach ($tmpDirs as $dir) {
     }
 }
 
-// Ensure storage paths use /tmp
+// Setup sqlite database in /tmp if not using external database
+if (!getenv('DB_CONNECTION') || getenv('DB_CONNECTION') === 'sqlite') {
+    if (!file_exists('/tmp/database.sqlite')) {
+        touch('/tmp/database.sqlite');
+    }
+    putenv('DB_DATABASE=/tmp/database.sqlite');
+}
+
+// Ensure storage and cache paths use /tmp
 putenv('VIEW_COMPILED_PATH=/tmp/views');
 putenv('APP_CONFIG_CACHE=/tmp/config.php');
 putenv('APP_EVENTS_CACHE=/tmp/events.php');
