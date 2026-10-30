@@ -2,7 +2,12 @@
 
 use Illuminate\Http\Request;
 
-define('LARAVEL_START', microtime(true));
+// Suppress PHP 8.5 deprecation notices from polluting output
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+if (!defined('LARAVEL_START')) {
+    define('LARAVEL_START', microtime(true));
+}
 
 // Setup temporary directories for Vercel serverless environment
 $tmpDirs = [
@@ -17,13 +22,14 @@ foreach ($tmpDirs as $dir) {
     }
 }
 
-// Setup sqlite database in /tmp if not using external database
-if (!getenv('DB_CONNECTION') || getenv('DB_CONNECTION') === 'sqlite') {
-    if (!file_exists('/tmp/database.sqlite')) {
-        touch('/tmp/database.sqlite');
-    }
-    putenv('DB_DATABASE=/tmp/database.sqlite');
+// Setup sqlite database in /tmp
+$dbPath = '/tmp/database.sqlite';
+$isNewDb = !file_exists($dbPath) || filesize($dbPath) === 0;
+if ($isNewDb) {
+    touch($dbPath);
 }
+putenv('DB_DATABASE=' . $dbPath);
+putenv('DB_CONNECTION=sqlite');
 
 // Ensure storage and cache paths use /tmp
 putenv('VIEW_COMPILED_PATH=/tmp/views');
@@ -33,5 +39,22 @@ putenv('APP_PACKAGES_CACHE=/tmp/packages.php');
 putenv('APP_ROUTES_CACHE=/tmp/routes.php');
 putenv('APP_SERVICES_CACHE=/tmp/services.php');
 
-// Delegate directly to Laravel public/index.php
-require __DIR__ . '/../public/index.php';
+// Register the Composer autoloader
+require __DIR__ . '/../vendor/autoload.php';
+
+// Bootstrap Laravel
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+
+// Auto-migrate and seed if newly initialized
+if ($isNewDb) {
+    try {
+        $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
+        $kernel->call('migrate', ['--force' => true]);
+        $kernel->call('db:seed', ['--force' => true]);
+    } catch (\Throwable $e) {
+        error_log('Auto-migration notice: ' . $e->getMessage());
+    }
+}
+
+// Handle HTTP request
+$app->handleRequest(Request::capture());
