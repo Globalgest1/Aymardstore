@@ -1,12 +1,57 @@
 <?php
 
-use Illuminate\Http\Request;
+use IlluminateHttpRequest;
 
 // Suppress PHP 8.5 deprecation notices from polluting output
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 if (!defined('LARAVEL_START')) {
     define('LARAVEL_START', microtime(true));
+}
+
+// Forward HTTPS headers from Vercel proxy
+if ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+    (isset($_SERVER['HTTP_X_FORWARDED_PORT']) && $_SERVER['HTTP_X_FORWARDED_PORT'] === '443') ||
+    (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on')) {
+    $_SERVER['HTTPS'] = 'on';
+    $_SERVER['SERVER_PORT'] = 443;
+}
+
+// Serve static assets directly if they exist in public/
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '');
+$publicFile = __DIR__ . '/../public' . $uri;
+
+if ($uri !== '' && $uri !== '/' && file_exists($publicFile) && !is_dir($publicFile)) {
+    $extension = strtolower(pathinfo($publicFile, PATHINFO_EXTENSION));
+    $mimes = [
+        'css'   => 'text/css; charset=utf-8',
+        'js'    => 'application/javascript; charset=utf-8',
+        'mjs'   => 'application/javascript; charset=utf-8',
+        'json'  => 'application/json',
+        'png'   => 'image/png',
+        'jpg'   => 'image/jpeg',
+        'jpeg'  => 'image/jpeg',
+        'gif'   => 'image/gif',
+        'svg'   => 'image/svg+xml',
+        'ico'   => 'image/x-icon',
+        'webp'  => 'image/webp',
+        'woff'  => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf'   => 'font/ttf',
+        'txt'   => 'text/plain',
+    ];
+
+    $contentType = $mimes[$extension] ?? (function_exists('mime_content_type') ? mime_content_type($publicFile) : 'application/octet-stream');
+
+    header('Content-Type: ' . $contentType);
+    if (str_starts_with($uri, '/build/')) {
+        header('Cache-Control: public, max-age=31536000, immutable');
+    } else {
+        header('Cache-Control: public, max-age=3600');
+    }
+    header('Content-Length: ' . filesize($publicFile));
+    readfile($publicFile);
+    exit;
 }
 
 // Setup temporary directories for Vercel serverless environment
@@ -44,6 +89,9 @@ require __DIR__ . '/../vendor/autoload.php';
 
 // Bootstrap Laravel
 $app = require_once __DIR__ . '/../bootstrap/app.php';
+
+// Force HTTPS scheme in Laravel URL generator
+\Illuminate\Support\Facades\URL::forceScheme('https');
 
 // Auto-migrate and seed if newly initialized
 if ($isNewDb) {
