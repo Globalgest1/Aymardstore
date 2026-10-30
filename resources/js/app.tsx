@@ -13,15 +13,36 @@ const appName = typeof window !== 'undefined' && window.document.getElementsByTa
   : 'Aymard Store';
 
 function initApp() {
+  const el = typeof document !== 'undefined' ? document.getElementById('app') : null;
+  let initialPage: any = undefined;
+
+  if (el?.dataset?.page) {
+    try {
+      initialPage = JSON.parse(el.dataset.page);
+    } catch (e) {
+      console.error('Failed to parse el.dataset.page:', e);
+    }
+  }
+
+  if (!initialPage && typeof document !== 'undefined') {
+    const scriptTag = document.querySelector('script[data-page="app"][type="application/json"]');
+    if (scriptTag?.textContent) {
+      try {
+        initialPage = JSON.parse(scriptTag.textContent);
+      } catch (e) {}
+    }
+  }
+
   createInertiaApp({
     title: (title) => (title ? `${title} — ${appName}` : appName),
+    page: initialPage,
     resolve: (name) =>
       resolvePageComponent(
         `./Pages/${name}.tsx`,
         import.meta.glob('./Pages/**/*.tsx')
       ),
-    setup({ el, App, props }) {
-      const container = el || (typeof document !== 'undefined' ? document.getElementById('app') : null);
+    setup({ el: element, App, props }) {
+      const container = element || el;
       if (container) {
         const root = createRoot(container);
         root.render(<App {...props} />);
