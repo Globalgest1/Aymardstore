@@ -47,8 +47,21 @@ if ($uri !== '' && $uri !== '/' && file_exists($publicFile) && !is_dir($publicFi
     if (str_starts_with($uri, '/build/')) {
         header('Cache-Control: public, max-age=31536000, immutable');
     } else {
-        header('Cache-Control: public, max-age=3600');
+        header('Cache-Control: public, max-age=86400');
     }
+
+    // Fast gzip compression for text, css, js assets
+    $isCompressible = in_array($extension, ['css', 'js', 'mjs', 'json', 'svg', 'txt']);
+    $acceptEncoding = $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '';
+    if ($isCompressible && str_contains($acceptEncoding, 'gzip') && function_exists('gzencode')) {
+        header('Content-Encoding: gzip');
+        header('Vary: Accept-Encoding');
+        $gz = gzencode(file_get_contents($publicFile), 6);
+        header('Content-Length: ' . strlen($gz));
+        echo $gz;
+        exit;
+    }
+
     header('Content-Length: ' . filesize($publicFile));
     readfile($publicFile);
     exit;
@@ -67,11 +80,15 @@ foreach ($tmpDirs as $dir) {
     }
 }
 
-// Setup sqlite database in /tmp
+// Setup sqlite database in /tmp by copying pre-seeded database in ~1ms
 $dbPath = '/tmp/database.sqlite';
-$isNewDb = !file_exists($dbPath) || filesize($dbPath) === 0;
-if ($isNewDb) {
-    touch($dbPath);
+if (!file_exists($dbPath) || filesize($dbPath) === 0) {
+    $seedDb = __DIR__ . '/../database/database.sqlite';
+    if (file_exists($seedDb) && filesize($seedDb) > 0) {
+        copy($seedDb, $dbPath);
+    } else {
+        touch($dbPath);
+    }
 }
 putenv('DB_DATABASE=' . $dbPath);
 putenv('DB_CONNECTION=sqlite');
@@ -89,17 +106,6 @@ require __DIR__ . '/../vendor/autoload.php';
 
 // Bootstrap Laravel
 $app = require_once __DIR__ . '/../bootstrap/app.php';
-
-// Auto-migrate and seed if newly initialized
-if ($isNewDb) {
-    try {
-        $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
-        $kernel->call('migrate', ['--force' => true]);
-        $kernel->call('db:seed', ['--force' => true]);
-    } catch (\Throwable $e) {
-        error_log('Auto-migration notice: ' . $e->getMessage());
-    }
-}
 
 // Handle HTTP request
 $app->handleRequest(\Illuminate\Http\Request::capture());
