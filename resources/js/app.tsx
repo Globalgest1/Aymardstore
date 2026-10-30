@@ -8,26 +8,36 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import '../css/app.css';
 
-const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'Aymard Store';
+const appName = typeof window !== 'undefined' && window.document.getElementsByTagName('title')[0]?.innerText
+  ? window.document.getElementsByTagName('title')[0].innerText
+  : 'Aymard Store';
 
-const el = typeof document !== 'undefined' ? document.getElementById('app') : null;
-const initialPage = el?.dataset?.page ? JSON.parse(el.dataset.page) : undefined;
+function initApp() {
+  createInertiaApp({
+    title: (title) => (title ? `${title} — ${appName}` : appName),
+    resolve: (name) =>
+      resolvePageComponent(
+        `./Pages/${name}.tsx`,
+        import.meta.glob('./Pages/**/*.tsx')
+      ),
+    setup({ el, App, props }) {
+      const container = el || (typeof document !== 'undefined' ? document.getElementById('app') : null);
+      if (container) {
+        const root = createRoot(container);
+        root.render(<App {...props} />);
+      }
+    },
+    progress: {
+      color: '#38bdf8',
+      showSpinner: true,
+    },
+  });
+}
 
-createInertiaApp({
-  title: (title) => (title ? `${title} — ${appName}` : appName),
-  page: initialPage,
-  resolve: (name) =>
-    resolvePageComponent(
-      `./Pages/${name}.tsx`,
-      import.meta.glob('./Pages/**/*.tsx')
-    ),
-  setup({ el, App, props }) {
-    if (!el) return;
-    const root = createRoot(el);
-    root.render(<App {...props} />);
-  },
-  progress: {
-    color: '#38bdf8',
-    showSpinner: true,
-  },
-});
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
+}
