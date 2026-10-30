@@ -1,6 +1,6 @@
 <?php
 
-use IlluminateHttpRequest;
+use Illuminate\Http\Request;
 
 // Suppress PHP 8.5 deprecation notices from polluting output
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
@@ -90,7 +90,6 @@ require __DIR__ . '/../vendor/autoload.php';
 // Bootstrap Laravel
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-// Force HTTPS scheme in Laravel URL generator
 // Auto-migrate and seed if newly initialized
 if ($isNewDb) {
     try {
@@ -103,4 +102,4 @@ if ($isNewDb) {
 }
 
 // Handle HTTP request
-$app->handleRequest(Request::capture());
+$app->handleRequest(\Illuminate\Http\Request::capture());
