@@ -4,25 +4,9 @@
     {
       "src": "api/index.php",
       "use": "vercel-php-bridge"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/build/(.*)",
-      "dest": "/public/build/$1"
-    },
-    {
-      "src": "/(favicon.ico|robots.txt|apple-touch-icon.png|icon.png|logo.png|products/.*)",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/(.*\\.(?:css|js|png|jpg|jpeg|gif|svg|woff|woff2|webp|ico|json))",
-      "dest": "/public/$1"
-    },
     {
       "src": "/(.*)",
       "dest": "/api/index.php"
