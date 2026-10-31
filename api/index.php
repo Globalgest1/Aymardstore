@@ -21,6 +21,21 @@ if ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PRO
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '');
 $publicFile = __DIR__ . '/../public' . $uri;
 
+// Support directory alias: /products/kingofcaps/ <-> /products/caps/
+if (!file_exists($publicFile) || is_dir($publicFile)) {
+    if (str_starts_with($uri, '/products/kingofcaps/')) {
+        $candidate = __DIR__ . '/../public' . str_replace('/products/kingofcaps/', '/products/caps/', $uri);
+        if (file_exists($candidate) && !is_dir($candidate)) {
+            $publicFile = $candidate;
+        }
+    } elseif (str_starts_with($uri, '/products/caps/')) {
+        $candidate = __DIR__ . '/../public' . str_replace('/products/caps/', '/products/kingofcaps/', $uri);
+        if (file_exists($candidate) && !is_dir($candidate)) {
+            $publicFile = $candidate;
+        }
+    }
+}
+
 if ($uri !== '' && $uri !== '/' && file_exists($publicFile) && !is_dir($publicFile)) {
     $extension = strtolower(pathinfo($publicFile, PATHINFO_EXTENSION));
     $mimes = [
