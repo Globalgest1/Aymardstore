@@ -31,7 +31,7 @@ export default function Footer() {
       if (email.trim()) channels.push('EMAIL');
       else if (whatsappPhone.trim()) channels.push('WHATSAPP');
       else {
-        setSubFeedback('⚠️ Veuillez renseigner un email ou un numéro WhatsApp.');
+        setSubFeedback('Veuillez renseigner un email ou un numéro WhatsApp valide.');
         setTimeout(() => setSubFeedback(null), 4000);
         return;
       }
@@ -131,7 +131,10 @@ export default function Footer() {
                       fontWeight: 700 
                     }}
                   >
-                    <span>💬 WhatsApp</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.52 3.48A11.93 11.93 0 0 0 12.06 0C5.46 0 .09 5.37.09 11.97c0 2.11.55 4.16 1.6 5.97L0 24l6.22-1.63a11.94 11.94 0 0 0 5.84 1.51h.01c6.6 0 11.97-5.37 11.97-11.97 0-3.2-1.25-6.22-3.48-8.49zm-8.46 18.49h-.01a9.9 9.9 0 0 1-5.05-1.39l-.36-.21-3.75.98 1-3.65-.23-.38a9.92 9.92 0 0 1-1.52-5.25c0-5.48 4.46-9.94 9.95-9.94 2.65 0 5.15 1.03 7.03 2.91a9.88 9.88 0 0 1 2.91 7.03c0 5.49-4.47 9.94-9.98 9.94z"/>
+                    </svg>
+                    <span>WhatsApp</span>
                   </a>
                 </div>
               </div>
@@ -149,7 +152,7 @@ export default function Footer() {
                     <li><Link href="/products?category=bags" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Sacs de Luxe</Link></li>
                     <li><Link href="/products?category=jewelry" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Montres & Bijoux</Link></li>
                     <li><Link href="/products?filter=new" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>Nouveaux Drops</Link></li>
-                    <li><Link href="/blog" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>📰 Le Journal (Blog)</Link></li>
+                    <li><Link href="/blog" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>Le Journal (Blog)</Link></li>
                   </ul>
                 </div>
 
@@ -162,7 +165,7 @@ export default function Footer() {
                     <li><Link href="/account" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Mon Compte VIP</Link></li>
                     <li><Link href="/account?tab=orders" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Mes Commandes</Link></li>
                     <li><Link href="/cart" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Mon Panier</Link></li>
-                    <li><a href="mailto:judesinaberogui@gmail.com" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: '12px', fontWeight: 600 }}>✉ Contact Email</a></li>
+                    <li><a href="mailto:judesinaberogui@gmail.com" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: '12px', fontWeight: 600 }}>Contact Email</a></li>
                   </ul>
                 </div>
 
@@ -172,18 +175,20 @@ export default function Footer() {
                     Cadre Légal (Bénin)
                   </h4>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '9px' }}>
-                    <li><Link href="/legal/privacy" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>🛡️ Données &amp; APDP</Link></li>
-                    <li><Link href="/legal/employment" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>⚖️ Emploi &amp; Éthique RSE</Link></li>
-                    <li><Link href="/legal/terms" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>📜 Conditions CGV/CGU</Link></li>
-                    <li><Link href="/legal/mentions" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>🏛️ Mentions &amp; OAPI</Link></li>
+                    <li><Link href="/legal/privacy" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Données &amp; APDP</Link></li>
+                    <li><Link href="/legal/employment" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Emploi &amp; Éthique RSE</Link></li>
+                    <li><Link href="/legal/terms" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Conditions Générales (CGV)</Link></li>
+                    <li><Link href="/legal/mentions" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '13px' }}>Mentions Légales &amp; OAPI</Link></li>
                   </ul>
                 </div>
               </div>
 
               {/* Newsletter & Drops VIP Club Column */}
               <div className="footer-newsletter-col">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '16px' }}>⚡</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#38bdf8', flexShrink: 0 }}>
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
                   <h4 style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#ffffff', margin: 0 }}>
                     Alertes Drops &amp; Nouveautés
                   </h4>
@@ -233,24 +238,35 @@ export default function Footer() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.65)' }}>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', gap: '14px' }}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}>
                         <input 
                           type="checkbox" 
                           checked={wantWhatsapp} 
                           onChange={e => setWantWhatsapp(e.target.checked)} 
-                          style={{ accentColor: '#25d366' }}
+                          style={{ accentColor: '#25d366', cursor: 'pointer' }}
                         />
-                        <span>💬 WhatsApp</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: wantWhatsapp ? '#25d366' : 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.52 3.48A11.93 11.93 0 0 0 12.06 0C5.46 0 .09 5.37.09 11.97c0 2.11.55 4.16 1.6 5.97L0 24l6.22-1.63a11.94 11.94 0 0 0 5.84 1.51h.01c6.6 0 11.97-5.37 11.97-11.97 0-3.2-1.25-6.22-3.48-8.49zm-8.46 18.49h-.01a9.9 9.9 0 0 1-5.05-1.39l-.36-.21-3.75.98 1-3.65-.23-.38a9.92 9.92 0 0 1-1.52-5.25c0-5.48 4.46-9.94 9.95-9.94 2.65 0 5.15 1.03 7.03 2.91a9.88 9.88 0 0 1 2.91 7.03c0 5.49-4.47 9.94-9.98 9.94z"/>
+                          </svg>
+                          WhatsApp
+                        </span>
                       </label>
-                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}>
                         <input 
                           type="checkbox" 
                           checked={wantEmail} 
                           onChange={e => setWantEmail(e.target.checked)} 
-                          style={{ accentColor: '#38bdf8' }}
+                          style={{ accentColor: '#38bdf8', cursor: 'pointer' }}
                         />
-                        <span>📧 Email</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: wantEmail ? '#38bdf8' : 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                          </svg>
+                          Email
+                        </span>
                       </label>
                     </div>
 
@@ -294,7 +310,7 @@ export default function Footer() {
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span>© {new Date().getFullYear()} {brandSettings?.storeName || 'AYMARD'} {brandSettings?.storeSubtitle || 'STORE'}. Tous droits réservés.</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#34d399', fontSize: '10.5px', fontWeight: 700 }}>
-                  🇧🇯 République du Bénin • APDP &amp; Code du Travail
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }}></span> République du Bénin • APDP &amp; Code du Travail
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
