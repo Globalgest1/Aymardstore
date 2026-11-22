@@ -9,12 +9,6 @@ if (!defined('LARAVEL_START')) {
     define('LARAVEL_START', microtime(true));
 }
 
-// Fix Symfony HttpFoundation basePath calculation on Vercel Serverless
-// In Vercel PHP runtime, SCRIPT_NAME is '/api/index.php', which causes Symfony to set
-// baseUrl = '/api' and strip '/api' from all /api/* routes (breaking all API endpoints).
-$_SERVER['SCRIPT_NAME'] = '/index.php';
-$_SERVER['PHP_SELF'] = '/index.php';
-
 // Forward HTTPS headers from Vercel proxy
 if ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
     (isset($_SERVER['HTTP_X_FORWARDED_PORT']) && $_SERVER['HTTP_X_FORWARDED_PORT'] === '443') ||
@@ -23,19 +17,12 @@ if ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PRO
     $_SERVER['SERVER_PORT'] = 443;
 }
 
+// Clear any stale route or config cache in /tmp to ensure routes are always up to date
+@unlink('/tmp/routes.php');
+@unlink('/tmp/config.php');
+
 // Serve static assets directly if they exist in public/
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '');
-
-if ($uri === '/api/debug-server') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'status' => 'LIVE_OK',
-        'SCRIPT_NAME' => $_SERVER['SCRIPT_NAME'] ?? null,
-        'PHP_SELF' => $_SERVER['PHP_SELF'] ?? null,
-        'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? null,
-    ]);
-    exit;
-}
 
 $publicFile = __DIR__ . '/../public' . $uri;
 
