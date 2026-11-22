@@ -593,7 +593,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ showToast }) => {
 
         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <span style={{ fontSize: '12px', color: 'var(--adm-text-m)' }}>
-            🔒 Webhook URL : <code>https://aymard-store.com/api/webhook/leekpay</code>
+            🔒 Webhook URL : <code>https://aymardstore.vercel.app/api/webhook/leekpay</code>
           </span>
           <button
             type="button"
