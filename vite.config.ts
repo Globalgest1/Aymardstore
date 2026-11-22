@@ -5,6 +5,8 @@ import path from 'path';
 
 export default defineConfig({
   define: {
+    'process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID': JSON.stringify(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1069749520606-9bgh641esn3qhmtnqph8f2knmc2168h5.apps.googleusercontent.com'),
+    'process.env.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY': JSON.stringify(process.env.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY || ''),
     'process.env': {},
   },
   plugins: [
