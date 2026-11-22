@@ -28,8 +28,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
             'webhook/*',
             'orders',
+            'orders/*',
             'checkout',
             'checkout/*',
+            'auth/admin-login',
+            'auth/send-otp',
+            'auth/verify-otp',
+            'support/chat',
+            'notify-merchant',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
