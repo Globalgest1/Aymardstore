@@ -130,7 +130,7 @@ function LoginForm() {
 
   // Google Sign-In Integration (Google Identity Services & OAuth)
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1069749520606-9bgh641esn3qhmtnqph8f2knmc2168h5.apps.googleusercontent.com';
     if (!clientId) return;
 
     // Load Google GSI Script if not present
@@ -230,7 +230,7 @@ function LoginForm() {
 
   const handleGoogleSignIn = () => {
     setError('');
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1069749520606-9bgh641esn3qhmtnqph8f2knmc2168h5.apps.googleusercontent.com';
     if (!clientId) {
       setError('Service de connexion Google temporairement indisponible.');
       return;
