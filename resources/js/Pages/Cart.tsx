@@ -62,6 +62,9 @@ export default function CartPage() {
   const [customCity, setCustomCity] = useState(initialCity);
   const [customZip, setCustomZip] = useState(defaultAddr?.zipCode || (activeLoc.id === 'benin' ? '01BP' : activeLoc.id === 'belgique' ? '1000' : '75001'));
   const [customPhone, setCustomPhone] = useState(user?.phone || '');
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [orderSuccessData, setOrderSuccessData] = useState<any>(null);
   
   // Save address for future orders checkbox
   const [saveAddressForFuture, setSaveAddressForFuture] = useState(true);
@@ -246,23 +249,18 @@ export default function CartPage() {
     setAppliedCoupon(null);
   };
   const handleCheckout = () => {
-    if (!user) {
-      router.push('/account');
-      return;
-    }
-
-    const chosenAddr = selectedAddressId !== 'new' && selectedAddressId !== 'custom'
+    const chosenAddr = (user && selectedAddressId !== 'new' && selectedAddressId !== 'custom')
       ? (user.savedAddresses || []).find(a => a.id === selectedAddressId)
       : null;
 
-    const finalFullName = chosenAddr?.fullName || user.name || 'Client AYMARD STORE';
+    const finalFullName = chosenAddr?.fullName || user?.name || guestName.trim() || (customStreet ? `Client (${customCity})` : 'Client AYMARD STORE');
     const finalStreet = chosenAddr?.street || customStreet || 'Non précisée';
     const finalCity = chosenAddr?.city || customCity || (activeLoc.id === 'benin' ? 'Cotonou' : 'Paris');
     const finalZip = chosenAddr?.zipCode || customZip || '00000';
     const finalCountry = chosenAddr?.country || activeLoc.name;
-    const finalPhone = chosenAddr?.phone || customPhone || user.phone || '';
+    const finalPhone = chosenAddr?.phone || customPhone || user?.phone || '';
 
-    if (!finalPhone || finalPhone.length < 6) {
+    if (!finalPhone || finalPhone.trim().length < 6) {
       alert('Veuillez renseigner votre numéro de téléphone / WhatsApp pour la livraison');
       return;
     }
@@ -306,7 +304,7 @@ export default function CartPage() {
         id: orderNumber,
         orderNumber,
         date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        customerEmail: user.email,
+        customerEmail: user?.email || guestEmail.trim() || 'commande@aymard-store.com',
         customerName: finalFullName,
         customerPhone: finalPhone,
         items: [...cart],
@@ -382,11 +380,27 @@ export default function CartPage() {
       }
 
       clearCart();
-      router.push('/account?tab=orders&success=true');
+      setOrderSuccessData(newOrder);
+      if (user) {
+        router.push('/account?tab=orders&success=true');
+      }
     };
 
     if (paymentMethod === 'COD') {
       finalizeCartOrder(false);
+      return;
+    }
+
+    const leekpayKey = monerooSettings?.publicKey?.trim() || (typeof process !== 'undefined' ? (process.env?.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY || '') : '');
+    if (!leekpayKey) {
+      const confirmCod = typeof window !== 'undefined' && window.confirm(
+        'Le paiement en ligne par Mobile Money / Carte est en cours de configuration commerçant.\n\nSouhaitez-vous valider immédiatement votre commande avec le Paiement à la livraison (gratuit) ?'
+      );
+      if (confirmCod) {
+        setPaymentMethod('COD');
+        finalizeCartOrder(false);
+        return;
+      }
       return;
     }
 
@@ -398,9 +412,9 @@ export default function CartPage() {
     openLeekPayCheckout({
       amount: amountInFcfa,
       currency: 'XOF',
-      apiKey: monerooSettings?.publicKey?.trim() || undefined,
+      apiKey: leekpayKey,
       description: `Commande AYMARD STORE (${cart.length} article${cart.length > 1 ? 's' : ''})`,
-      customerEmail: user.email,
+      customerEmail: user?.email || guestEmail || undefined,
       customerName: finalFullName,
       onSuccess: (tx) => {
         finalizeCartOrder(true, tx);
@@ -413,6 +427,67 @@ export default function CartPage() {
       }
     });
   };
+
+  if (orderSuccessData) {
+    return (
+      <AppLayout>
+        <div className="container section" style={{ maxWidth: '640px', margin: '40px auto', padding: '32px 20px', textAlign: 'center' }}>
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '36px', fontWeight: 900 }}>
+            ✓
+          </div>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
+            Commande confirmée avec succès !
+          </h1>
+          <p style={{ color: '#475569', fontSize: '15px', lineHeight: 1.6, marginBottom: '24px' }}>
+            Merci pour votre commande, <strong>{orderSuccessData.customerName}</strong>. Votre commande <strong>#{orderSuccessData.orderNumber}</strong> a été enregistrée avec succès.
+          </p>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', textAlign: 'left', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0', marginBottom: '10px' }}>
+              <span style={{ color: '#64748b', fontSize: '13px' }}>Mode de règlement</span>
+              <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                {orderSuccessData.paymentMethod === 'COD' ? 'Paiement à la livraison' : 'Paiement en ligne validé'}
+              </strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0', marginBottom: '10px' }}>
+              <span style={{ color: '#64748b', fontSize: '13px' }}>Lieu de livraison</span>
+              <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                {orderSuccessData.shippingAddress.street}, {orderSuccessData.shippingAddress.city}
+              </strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0', marginBottom: '10px' }}>
+              <span style={{ color: '#64748b', fontSize: '13px' }}>Contact téléphone</span>
+              <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                {orderSuccessData.customerPhone}
+              </strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px' }}>
+              <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '15px' }}>Total</span>
+              <strong style={{ color: '#0f172a', fontWeight: 900, fontSize: '17px' }}>
+                {orderSuccessData.total.toLocaleString()} {orderSuccessData.currency}
+              </strong>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <a
+              href={`https://wa.me/2290197362906?text=${encodeURIComponent('Bonjour AYMARD STORE, je viens de passer la commande #' + orderSuccessData.orderNumber + ' (' + orderSuccessData.total + ' ' + orderSuccessData.currency + '). Je confirme mon adresse : ' + orderSuccessData.shippingAddress.street + ', ' + orderSuccessData.shippingAddress.city)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', background: '#25D366', color: '#ffffff', fontWeight: 800, padding: '14px 24px', borderRadius: '30px', textDecoration: 'none', fontSize: '14.5px' }}
+            >
+              <span>💬</span> Confirmer ma livraison sur WhatsApp
+            </a>
+            <Link
+              href="/products"
+              className="btn btn-primary"
+              style={{ borderRadius: '30px', padding: '12px 24px' }}
+            >
+              Continuer mes achats
+            </Link>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -519,17 +594,22 @@ export default function CartPage() {
             })}
           </div>
 
-          {/* User Delivery Address Selection & Auto-Save Options */}
-          {user && (
-            <div style={{ marginTop: '24px', background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>📍</span> Adresse de livraison pour cette commande
-                </h3>
+          {/* Delivery Address Selection (User & Guest) */}
+          <div style={{ marginTop: '24px', background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📍</span> Adresse de livraison pour cette commande
+              </h3>
+              {user ? (
                 <Link href="/account?tab=addresses" style={{ fontSize: '12px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700 }}>
                   Gérer mon carnet d&apos;adresses
                 </Link>
-              </div>
+              ) : (
+                <Link href="/auth/login" style={{ fontSize: '12px', color: '#0284c7', textDecoration: 'underline', fontWeight: 700 }}>
+                  Déjà client ? Se connecter
+                </Link>
+              )}
+            </div>
 
               {/* Saved Addresses List */}
               {user.savedAddresses && user.savedAddresses.length > 0 && (
@@ -667,7 +747,6 @@ export default function CartPage() {
               </div>
 
             </div>
-          )}
         </div>
 
         {/* Right Side: Order Summary */}
