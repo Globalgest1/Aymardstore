@@ -9,6 +9,12 @@ if (!defined('LARAVEL_START')) {
     define('LARAVEL_START', microtime(true));
 }
 
+// Fix Symfony HttpFoundation basePath calculation on Vercel Serverless
+// In Vercel PHP runtime, SCRIPT_NAME is '/api/index.php', which causes Symfony to set
+// baseUrl = '/api' and strip '/api' from all /api/* routes (breaking all API endpoints).
+$_SERVER['SCRIPT_NAME'] = '/index.php';
+$_SERVER['PHP_SELF'] = '/index.php';
+
 // Forward HTTPS headers from Vercel proxy
 if ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
     (isset($_SERVER['HTTP_X_FORWARDED_PORT']) && $_SERVER['HTTP_X_FORWARDED_PORT'] === '443') ||
