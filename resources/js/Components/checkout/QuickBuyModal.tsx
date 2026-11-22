@@ -255,6 +255,21 @@ export default function QuickBuyModal() {
   };
 
   const handleLaunchLeekPay = () => {
+    const leekpayKey = monerooSettings?.publicKey?.trim() || (typeof process !== 'undefined' ? (process.env?.NEXT_PUBLIC_LEEKPAY_PUBLIC_KEY || '') : '');
+    if (!leekpayKey) {
+      const confirmCod = typeof window !== 'undefined' && window.confirm(
+        'Le paiement en ligne par Mobile Money / Carte est en cours de configuration commerçant.\n\nSouhaitez-vous valider immédiatement votre commande avec le Paiement à la livraison (gratuit) ?'
+      );
+      if (confirmCod) {
+        setPaymentMethod('COD');
+        handleConfirmPaymentSuccess(true);
+        return;
+      }
+      setErrorMessage('Veuillez sélectionner le Paiement à la livraison pour finaliser votre commande.');
+      setCheckoutStep('FORM');
+      return;
+    }
+
     const amountInFcfa = activeLoc.currency === 'FCFA' 
       ? totalAmount 
       : Math.round(totalAmount * (activeLoc.exchangeRate || 655.957));
