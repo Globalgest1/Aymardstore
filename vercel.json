@@ -26,5 +26,10 @@
     "CACHE_STORE": "array",
     "SESSION_DRIVER": "cookie",
     "LOG_CHANNEL": "stderr"
+  },
+  "build": {
+    "env": {
+      "npm_config_onnxruntime_node_install_cuda": "skip"
+    }
   }
 }
