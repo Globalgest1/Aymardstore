@@ -2365,21 +2365,28 @@ html.dark .mobile-search-toggle {
   padding: 10px 22px;
   border-radius: 30px;
   opacity: 0;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, background-color 0.2s ease;
+  transition: opacity 0.3s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   pointer-events: auto;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
   z-index: 5;
   cursor: pointer;
 }
 
-.slider-card-quick-add:hover {
-  background-color: #333333;
+.slider-card:hover .slider-card-quick-add {
+  transform: translate(-50%, 0) !important;
+  opacity: 1;
 }
 
-.slider-card:hover .slider-card-quick-add {
-  transform: translate(-50%, 0);
-  opacity: 1;
+.slider-card-quick-add:hover {
+  transform: translate(-50%, 0) !important;
+  background-color: #27272a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+.slider-card-quick-add:active {
+  transform: translate(-50%, 0) scale(0.97) !important;
+  background-color: #09090b !important;
 }
 
 /* Badges styling */
@@ -2991,19 +2998,18 @@ html.dark .mobile-search-toggle {
   }
 }
 
-/* 3D hover effects on Product Cards */
+/* Product Cards hover effect */
 .slider-card, .grid-3 > div, .grid-4 > div {
-  transform-style: preserve-3d;
-  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
 }
 
 .slider-card:hover, .grid-3 > div:hover, .grid-4 > div:hover {
-  transform: perspective(1000px) rotateX(6deg) rotateY(-4deg) translateY(-8px) translateZ(10px) !important;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05) !important;
+  transform: translateY(-6px) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04) !important;
 }
 
 .slider-card:active, .grid-3 > div:active, .grid-4 > div:active {
-  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-2px) translateZ(2px) scale(0.97) !important;
+  transform: translateY(-2px) scale(0.98) !important;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06) !important;
 }
 
@@ -3021,16 +3027,16 @@ html.dark .mobile-search-toggle {
 }
 
 /* Specific 3D styling for primary CTA buttons (Quick add / Add to cart) */
-.btn-primary, .btn-accent, .slider-card-quick-add {
+.btn-primary, .btn-accent {
   box-shadow: 0 4px 0 #000000, 0 8px 16px rgba(0,0,0,0.12) !important;
 }
 
-.btn-primary:hover, .btn-accent:hover, .slider-card-quick-add:hover {
+.btn-primary:hover, .btn-accent:hover {
   transform: translateY(-3px) !important;
   box-shadow: 0 7px 0 #000000, 0 12px 20px rgba(0,0,0,0.18) !important;
 }
 
-.btn-primary:active, .btn-accent:active, .slider-card-quick-add:active {
+.btn-primary:active, .btn-accent:active {
   transform: translateY(3px) !important;
   box-shadow: 0 0px 0 #000000, 0 4px 8px rgba(0,0,0,0.08) !important;
 }
